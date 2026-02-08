@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TASKS Pro - Gestor Integral</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Pantalla de Login -->
+  <div id="login-screen" class="screen active">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon"><span></span><span></span><span></span></div>
+        <span>TASKS</span>
+      </div>
+    </header>
+    <main class="login-main">
+      <div class="login-card">
+        <h1><span class="accent">Iniciar</span> sesión</h1>
+        <p class="subtitle">Planifica tu semana y cumple tus objetivos</p>
+        <form id="login-form">
+          <input type="password" id="password" placeholder="Contraseña (4 dígitos)" required maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <!-- Dashboard principal -->
+  <div id="app-screen" class="screen">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon"><span></span><span></span><span></span></div>
+        <span>TASKS</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="semana">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Semana</span>
+        </button>
+        <button class="nav-item" data-view="calendario">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+          <span>Calendario</span>
+        </button>
+        <button class="nav-item" data-view="objetivos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>Objetivos</span>
+        </button>
+        <button class="nav-item" data-view="gym">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M6.5 6.5L12 12l5.5-5.5"/><path d="M6.5 17.5L12 12l5.5 5.5"/></svg>
+          <span>GYM</span>
+        </button>
+        <button class="nav-item" data-view="analisis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M9 17V9"/><path d="M15 17v-5"/><path d="M12 17v-1"/></svg>
+          <span>Análisis</span>
+        </button>
+        <button class="nav-item" data-view="config">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Configuración</span>
+        </button>
+        <div class="sidebar-footer">
+          <button class="nav-item nav-item-logout" id="logout-btn" title="Cerrar sesión">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Salir</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="header compact">
+        <div class="header-left">
+          <h2 class="page-title" id="page-title">Dashboard</h2>
+          <div class="search-box-compact">
+            <input type="text" id="search-tasks" placeholder="🔍 Buscar tareas..." class="search-input">
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary btn-add" id="add-task-btn">+ Nueva tarea</button>
+        </div>
+      </header>
+      
+      <div id="notifications-container" class="notifications-container"></div>
+
+      <main class="dashboard-content">
+        <!-- Vista Dashboard -->
+        <section id="view-dashboard" class="view active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span class="stat-value" id="stat-hoy">0</span>
+              <span class="stat-label">Tareas hoy</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span class="stat-value" id="stat-completadas">0</span>
+              <span class="stat-label">Completadas hoy</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+              </svg>
+              <span class="stat-value" id="stat-racha">0</span>
+              <span class="stat-label">Racha de días</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <span class="stat-value" id="stat-progreso-semana">0%</span>
+              <span class="stat-label">Progreso semanal</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span class="stat-value" id="stat-tiempo-estimado">0h</span>
+              <span class="stat-label">Tiempo estimado pendiente</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <span class="stat-value" id="stat-atrasadas">0</span>
+              <span class="stat-label">Tareas atrasadas</span>
+            </div>
+          </div>
+          <div class="dashboard-sections">
+            <div class="dashboard-card">
+              <h3><span class="accent">Próximas</span> tareas</h3>
+              <div id="dashboard-proximas" class="task-list-mini"></div>
+            </div>
+            <div class="dashboard-card">
+              <h3><span class="accent">Objetivos</span> próximos</h3>
+              <div id="dashboard-objetivos" class="objetivos-mini"></div>
+            </div>
+            <div class="dashboard-card">
+              <h3><span class="accent">Resumen</span> semanal</h3>
+              <div id="dashboard-resumen" class="week-mini"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vista Semana -->
+        <section id="view-semana" class="view">
+          <div class="week-container"></div>
+        </section>
+
+        <!-- Vista Calendario -->
+        <section id="view-calendario" class="view">
+          <div class="calendar-header">
+            <button class="btn-icon" id="cal-prev">‹</button>
+            <h3 id="cal-month-year">Febrero 2025</h3>
+            <button class="btn-icon" id="cal-next">›</button>
+            <button class="btn-secondary btn-sm" id="cal-today">Hoy</button>
+          </div>
+          <div class="calendar-legend">
+            <span class="legend-item"><span class="legend-dot high"></span>Alta prioridad</span>
+            <span class="legend-item"><span class="legend-dot medium"></span>Media prioridad</span>
+            <span class="legend-item"><span class="legend-dot low"></span>Baja prioridad</span>
+            <span class="legend-item"><span class="legend-dot completed"></span>Día completado</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+          <div class="calendar-tasks" id="calendar-day-tasks"></div>
+        </section>
+
+        <!-- Vista Objetivos -->
+        <section id="view-objetivos" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Mis</span> objetivos</h3>
+            <button class="btn-primary btn-add-sm" id="add-objetivo-btn">+ Nuevo objetivo</button>
+          </div>
+          <div id="objetivos-list" class="objetivos-list"></div>
+        </section>
+
+
+        <!-- Vista GYM -->
+        <section id="view-gym" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Rutinas</span> de gym</h3>
+            <div class="gym-header-actions">
+              <button class="btn-primary btn-add-sm" id="add-gym-btn">+ Nueva rutina</button>
+              <button class="btn-secondary btn-add-sm" id="gym-history-btn">📊 Historial</button>
+            </div>
+          </div>
+          <div class="gym-stats-week">
+            <div class="gym-stat-card">
+              <span class="gym-stat-label">Entrenamientos esta semana</span>
+              <span class="gym-stat-value" id="gym-week-workouts">0</span>
+            </div>
+            <div class="gym-stat-card">
+              <span class="gym-stat-label">Volumen total (kg)</span>
+              <span class="gym-stat-value" id="gym-week-volume">0</span>
+            </div>
+            <div class="gym-stat-card">
+              <span class="gym-stat-label">Grupos trabajados</span>
+              <span class="gym-stat-value" id="gym-week-groups">-</span>
+            </div>
+          </div>
+          <div class="gym-container" id="gym-container"></div>
+        </section>
+
+        <!-- Vista Análisis -->
+        <section id="view-analisis" class="view">
+          <div class="analisis-container">
+            <div class="analisis-grid">
+              <div class="analisis-card">
+                <h3>Productividad Semanal</h3>
+                <canvas id="chart-weekly"></canvas>
+              </div>
+              <div class="analisis-card">
+                <h3>Tareas por Categoría</h3>
+                <canvas id="chart-category"></canvas>
+              </div>
+              <div class="analisis-card">
+                <h3>Tareas por Prioridad</h3>
+                <canvas id="chart-priority"></canvas>
+              </div>
+              <div class="analisis-card">
+                <h3>Progreso General</h3>
+                <div class="progress-stats">
+                  <div class="progress-item">
+                    <span class="progress-label">Tasa Completadas</span>
+                    <div class="progress-bar"><div class="progress-fill" id="progress-rate"></div></div>
+                    <span class="progress-value" id="progress-rate-text">0%</span>
+                  </div>
+                  <div class="progress-item">
+                    <span class="progress-label">Racha Actual (días)</span>
+                    <span class="progress-value" id="current-streak">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vista Configuración -->
+        <section id="view-config" class="view">
+          <div class="config-container">
+            <div class="config-card">
+              <h3><span class="accent">General</span></h3>
+              <div class="config-options">
+                <div class="config-item">
+                  <label>Empezar semana en</label>
+                  <select id="config-inicio-semana">
+                    <option value="0">Lunes</option>
+                    <option value="6">Domingo</option>
+                  </select>
+                </div>
+                <div class="config-item">
+                  <label>Mostrar fines de semana</label>
+                  <input type="checkbox" id="config-fines-semana" checked>
+                </div>
+                <div class="config-item">
+                  <label>Notificaciones</label>
+                  <input type="checkbox" id="config-notificaciones" checked>
+                </div>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><span class="accent">Datos</span></h3>
+              <div class="config-options">
+                <button class="btn-secondary" id="export-data-btn">📥 Exportar Datos</button>
+                <button class="btn-secondary" id="import-data-btn">📤 Importar Datos</button>
+                <button class="btn-secondary btn-danger" id="clear-data-btn">🗑️ Limpiar Todo</button>
+                <input type="file" id="import-file" accept=".json" style="display:none;">
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal objetivo -->
+  <div id="objetivo-modal" class="modal">
+    <div class="modal-content">
+      <h2><span class="accent">Nuevo</span> objetivo</h2>
+      <form id="objetivo-form">
+        <input type="text" id="objetivo-text" placeholder="¿Cuál es tu objetivo?" required>
+        <input type="date" id="objetivo-fecha" placeholder="Fecha límite (opcional)">
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="cancel-objetivo-btn">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal rutina GYM -->
+  <div id="gym-modal" class="modal">
+    <div class="modal-content modal-wide">
+      <h2><span class="accent">Nueva</span> rutina</h2>
+      <form id="gym-form">
+        <div class="form-row">
+          <select id="gym-day" required>
+            <option value="lunes">Lunes</option>
+            <option value="martes">Martes</option>
+            <option value="miercoles">Miércoles</option>
+            <option value="jueves">Jueves</option>
+            <option value="viernes">Viernes</option>
+            <option value="sabado">Sábado</option>
+            <option value="domingo">Domingo</option>
+          </select>
+          <select id="gym-focus">
+            <option value="pecho">Pecho</option>
+            <option value="espalda">Espalda</option>
+            <option value="piernas">Piernas</option>
+            <option value="hombros">Hombros</option>
+            <option value="brazos">Brazos</option>
+            <option value="core">Core</option>
+            <option value="full">Full body</option>
+            <option value="cardio">Cardio</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="gym-exercises">
+          <label>Ejercicios (uno por línea: nombre, series x reps)</label>
+          <textarea id="gym-exercises" placeholder="Ej:&#10;Press banca 4x10&#10;Fondos 3x12&#10;Cruces 3x15" rows="6"></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="cancel-gym-btn">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal registro de entrenamiento -->
+  <div id="gym-workout-modal" class="modal">
+    <div class="modal-content modal-extra-wide">
+      <h2><span class="accent">Registrar</span> entrenamiento</h2>
+      <form id="gym-workout-form">
+        <input type="hidden" id="workout-day">
+        <div id="workout-exercises-list"></div>
+        <div class="form-group">
+          <label>Notas del entrenamiento</label>
+          <textarea id="workout-notes" placeholder="¿Cómo te has sentido? Observaciones..." rows="3"></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="cancel-workout-btn">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar entrenamiento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal historial GYM -->
+  <div id="gym-history-modal" class="modal">
+    <div class="modal-content modal-wide">
+      <h2><span class="accent">Historial</span> de entrenamientos</h2>
+      <div id="gym-history-list"></div>
+      <div class="modal-buttons">
+        <button type="button" class="btn-secondary" id="close-gym-history">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal tarea completa -->
+  <div id="task-modal" class="modal">
+    <div class="modal-content modal-wide">
+      <h2><span class="accent">Nueva</span> tarea</h2>
+      <form id="task-form">
+        <div class="form-row">
+          <input type="text" id="task-name" placeholder="Nombre de la tarea" required>
+          <input type="date" id="task-date" required>
+        </div>
+        <div class="form-row">
+          <input type="time" id="task-time" required>
+        </div>
+        <div class="form-row">
+          <select id="task-categoria">
+            <option value="">Sin categoría</option>
+            <option value="trabajo">Trabajo</option>
+            <option value="personal">Personal</option>
+            <option value="estudio">Estudio</option>
+            <option value="salud">Salud</option>
+            <option value="otros">Otros</option>
+          </select>
+          <select id="task-prioridad">
+            <option value="media">Prioridad media</option>
+            <option value="alta">Alta</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input type="number" id="task-estimado" placeholder="Tiempo estimado (min)" min="1">
+          <input type="checkbox" id="task-recordatorio" title="Recordatorio">
+          <label for="task-recordatorio" style="flex:0;margin-left:0.5rem;">Recordatorio</label>
+        </div>
+        <textarea id="task-descripcion" placeholder="Descripción (opcional)" rows="3"></textarea>
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="cancel-task-btn">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Timer/Enfoque -->
+  <div id="timer-modal" class="modal">
+    <div class="modal-content">
+      <h2>Timer de Tarea</h2>
+      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-controls">
+        <button class="btn-secondary" id="timer-start">Iniciar</button>
+        <button class="btn-secondary" id="timer-pause" style="display:none;">Pausar</button>
+        <button class="btn-secondary" id="timer-reset">Reiniciar</button>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-secondary" id="timer-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Notas Rápidas -->
+  <div id="notes-modal" class="modal">
+    <div class="modal-content modal-wide">
+      <h2>Notas Rápidas</h2>
+      <div class="notes-list" id="notes-list"></div>
+      <form id="notes-form">
+        <textarea id="note-text" placeholder="Añade una nota..." rows="3"></textarea>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-primary">Añadir Nota</button>
+          <button type="button" class="btn-secondary" id="notes-close">Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
