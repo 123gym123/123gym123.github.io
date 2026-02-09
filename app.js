@@ -19,21 +19,7 @@ const state = {
 const GYM_FOCUS = { pecho: 'Pecho', espalda: 'Espalda', piernas: 'Piernas', hombros: 'Hombros', brazos: 'Brazos', core: 'Core', full: 'Full body', cardio: 'Cardio', otro: 'Otro' };
 const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 const DAY_LABELS = { lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue', viernes: 'Vie', sabado: 'Sáb', domingo: 'Dom' };
-const CATEGORIAS = { trabajo: 'Trabajo', personal: 'Personal', estudio: 'Estudio', salud: 'Salud', otros: 'Otros' };
-const PRIORIDADES = { alta: 'Alta', media: 'Media', baja: 'Baja' };
-const PIN_CORRECTO = '1971';
-
-// DOM
-const loginScreen = document.getElementById('login-screen');
-const appScreen = document.getElementById('app-screen');
-const loginForm = document.getElementById('login-form');
-const passwordInput = document.getElementById('password');
-const logoutBtn = document.getElementById('logout-btn');
-const addTaskBtn = document.getElementById('add-task-btn');
-const taskModal = document.getElementById('task-modal');
-const taskForm = document.getElementById('task-form');
-const cancelTaskBtn = document.getElementById('cancel-task-btn');
-const pageTitle = document.getElementById('page-title');
+w
 
 // Helpers
 function formatDate(d) { return d.toISOString().slice(0, 10); }
@@ -152,12 +138,9 @@ function init() {
 
   loginForm.addEventListener('submit', handleLogin);
   logoutBtn.addEventListener('click', handleLogout);
-  addTaskBtn.addEventListener('click', () => openTaskModal());
   cancelTaskBtn.addEventListener('click', closeTaskModal);
   taskForm.addEventListener('submit', handleTaskSubmit);
   taskModal.addEventListener('click', e => { if (e.target === taskModal) closeTaskModal(); });
-
-  document.getElementById('search-tasks').addEventListener('input', e => handleSearch(e.target.value));
 
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
@@ -189,6 +172,37 @@ function init() {
   // Actualizar selector de ejercicios cuando cambia el grupo muscular
   document.getElementById('gym-focus').addEventListener('change', () => {
     populateGymExerciseSelector();
+  });
+
+  // Custom select toggle
+  document.addEventListener('click', (e) => {
+    const customSelect = document.getElementById('custom-exercise-select');
+    const trigger = customSelect?.querySelector('.custom-select-trigger');
+    const searchInput = document.getElementById('gym-exercise-search');
+
+    // Si se hace clic en el trigger, toggle dropdown
+    if (e.target === trigger || trigger?.contains(e.target)) {
+      if (customSelect.classList.contains('open')) {
+        closeCustomSelect();
+      } else {
+        openCustomSelect();
+      }
+    }
+    // Si se hace clic en el input de búsqueda, no cerrar
+    else if (e.target === searchInput || searchInput?.contains(e.target)) {
+      return;
+    }
+    // Si se hace clic fuera del custom select, cerrar
+    else if (!customSelect?.contains(e.target)) {
+      closeCustomSelect();
+    }
+  });
+
+  // Buscador de ejercicios - usar event delegation
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'gym-exercise-search') {
+      filterGymExercises(e.target.value);
+    }
   });
 
   // Configuración
@@ -606,15 +620,6 @@ function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => { n.classList.toggle('active', n.dataset.view === view); });
-  pageTitle.textContent = VIEW_TITLES[view];
-  document.getElementById('search-tasks').value = '';
-
-  const headerActions = document.querySelector('.header-actions');
-  if (headerActions) {
-    const addTaskBtn = document.getElementById('add-task-btn');
-    // Ocultar el botón de nueva tarea en dashboard, semana y calendario
-    addTaskBtn.style.display = 'none';
-  }
 
   if (view === 'dashboard') renderDashboard();
   else if (view === 'semana') renderSemana();
@@ -1095,36 +1100,131 @@ function deleteGymRoutine(day) {
 }
 
 let selectedGymExercises = [];
+let currentSelectedExerciseId = null;
 
 function populateGymExerciseSelector() {
-  const select = document.getElementById('gym-exercise-select');
-  if (!select) return;
+  const optionsList = document.getElementById('gym-exercise-options');
+  if (!optionsList) return;
 
-  // Mostrar todos los ejercicios siempre
+  // Agrupar ejercicios por grupo muscular
   const groups = {};
   EJERCICIOS_DATABASE.forEach(ej => {
     if (!groups[ej.group]) groups[ej.group] = [];
     groups[ej.group].push(ej);
   });
 
-  // Poblar select con optgroups
-  select.innerHTML = '<option value="">Seleccionar ejercicio...</option>';
+  // Poblar lista personalizada con grupos
+  optionsList.innerHTML = '';
   Object.keys(groups).sort().forEach(group => {
-    const optgroup = document.createElement('optgroup');
-    optgroup.label = group.toUpperCase();
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'custom-option-group';
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'custom-option-group-label';
+    labelDiv.textContent = group.toUpperCase();
+    groupDiv.appendChild(labelDiv);
+
     groups[group].forEach(ej => {
-      const option = document.createElement('option');
-      option.value = ej.id;
-      option.textContent = ej.name;
-      optgroup.appendChild(option);
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'custom-option';
+      optionDiv.textContent = ej.name;
+      optionDiv.dataset.id = ej.id;
+      optionDiv.addEventListener('click', () => selectExercise(ej.id, ej.name));
+      groupDiv.appendChild(optionDiv);
     });
-    select.appendChild(optgroup);
+
+    optionsList.appendChild(groupDiv);
   });
 }
 
+function filterGymExercises(searchText) {
+  const optionsList = document.getElementById('gym-exercise-options');
+  if (!optionsList) return;
+
+  const search = searchText.toLowerCase().trim();
+
+  // Si no hay búsqueda, mostrar todos
+  if (!search) {
+    populateGymExerciseSelector();
+    return;
+  }
+
+  // Filtrar ejercicios que coincidan con la búsqueda
+  const filteredExercises = EJERCICIOS_DATABASE.filter(ej =>
+    ej.name.toLowerCase().includes(search) ||
+    ej.group.toLowerCase().includes(search) ||
+    ej.tags.some(tag => tag.toLowerCase().includes(search))
+  );
+
+  // Agrupar ejercicios filtrados
+  const groups = {};
+  filteredExercises.forEach(ej => {
+    if (!groups[ej.group]) groups[ej.group] = [];
+    groups[ej.group].push(ej);
+  });
+
+  // Poblar lista con ejercicios filtrados
+  optionsList.innerHTML = '';
+
+  if (filteredExercises.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'custom-option';
+    emptyDiv.textContent = 'No se encontraron ejercicios...';
+    emptyDiv.style.color = 'var(--text-secondary)';
+    emptyDiv.style.cursor = 'default';
+    optionsList.appendChild(emptyDiv);
+    return;
+  }
+
+  Object.keys(groups).sort().forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'custom-option-group';
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'custom-option-group-label';
+    labelDiv.textContent = group.toUpperCase();
+    groupDiv.appendChild(labelDiv);
+
+    groups[group].forEach(ej => {
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'custom-option';
+      optionDiv.textContent = ej.name;
+      optionDiv.dataset.id = ej.id;
+      optionDiv.addEventListener('click', () => selectExercise(ej.id, ej.name));
+      groupDiv.appendChild(optionDiv);
+    });
+
+    optionsList.appendChild(groupDiv);
+  });
+}
+
+function selectExercise(id, name) {
+  currentSelectedExerciseId = id;
+  document.querySelector('.custom-select-trigger').textContent = name;
+  closeCustomSelect();
+}
+
+function openCustomSelect() {
+  const customSelect = document.getElementById('custom-exercise-select');
+  customSelect.classList.add('open');
+
+  // Focus en el input de búsqueda
+  setTimeout(() => {
+    document.getElementById('gym-exercise-search').focus();
+  }, 100);
+}
+
+function closeCustomSelect() {
+  const customSelect = document.getElementById('custom-exercise-select');
+  customSelect.classList.remove('open');
+
+  // Limpiar búsqueda
+  document.getElementById('gym-exercise-search').value = '';
+  populateGymExerciseSelector();
+}
+
 function addGymExerciseToList() {
-  const select = document.getElementById('gym-exercise-select');
-  const exerciseId = parseInt(select.value);
+  const exerciseId = currentSelectedExerciseId;
 
   if (!exerciseId) {
     showNotification('Selecciona un ejercicio primero', 'warning');
@@ -1149,7 +1249,11 @@ function addGymExerciseToList() {
   });
 
   renderSelectedGymExercises();
-  select.value = '';
+
+  // Reset selector
+  currentSelectedExerciseId = null;
+  document.querySelector('.custom-select-trigger').textContent = 'Seleccionar ejercicio...';
+
   showNotification(`✓ ${ejercicio.name} añadido a la rutina`, 'success');
 }
 
@@ -1238,7 +1342,11 @@ function openGymModal(editDay = null) {
     document.getElementById('gym-focus').value = 'pecho';
   }
 
-  // Poblar selector con todos los ejercicios
+  // Limpiar buscador y poblar selector con todos los ejercicios
+  currentSelectedExerciseId = null;
+  document.getElementById('gym-exercise-search').value = '';
+  const trigger = document.querySelector('.custom-select-trigger');
+  if (trigger) trigger.textContent = 'Seleccionar ejercicio...';
   populateGymExerciseSelector();
   renderSelectedGymExercises();
 }
