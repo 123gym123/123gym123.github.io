@@ -19,7 +19,18 @@ const state = {
 const GYM_FOCUS = { pecho: 'Pecho', espalda: 'Espalda', piernas: 'Piernas', hombros: 'Hombros', brazos: 'Brazos', core: 'Core', full: 'Full body', cardio: 'Cardio', otro: 'Otro' };
 const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 const DAY_LABELS = { lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue', viernes: 'Vie', sabado: 'Sáb', domingo: 'Dom' };
-w
+const CATEGORIAS = { trabajo: 'Trabajo', personal: 'Personal', estudio: 'Estudio', salud: 'Salud', otros: 'Otros' };
+const PRIORIDADES = { alta: 'Alta', media: 'Media', baja: 'Baja' };
+
+// DOM Elements
+const loginScreen = document.getElementById('login-screen');
+const appScreen = document.getElementById('app-screen');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const logoutBtn = document.getElementById('logout-btn');
+const taskModal = document.getElementById('task-modal');
+const taskForm = document.getElementById('task-form');
+const cancelTaskBtn = document.getElementById('cancel-task-btn');
 
 // Helpers
 function formatDate(d) { return d.toISOString().slice(0, 10); }
@@ -137,6 +148,15 @@ function init() {
   else showLogin();
 
   loginForm.addEventListener('submit', handleLogin);
+  registerForm.addEventListener('submit', handleRegister);
+  document.getElementById('show-register').addEventListener('click', (e) => {
+    e.preventDefault();
+    showRegisterForm();
+  });
+  document.getElementById('show-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    showLoginForm();
+  });
   logoutBtn.addEventListener('click', handleLogout);
   cancelTaskBtn.addEventListener('click', closeTaskModal);
   taskForm.addEventListener('submit', handleTaskSubmit);
@@ -228,38 +248,128 @@ function init() {
   document.getElementById('gym-workout-form').addEventListener('submit', handleWorkoutSubmit);
 }
 
-// === LOGIN ===
-function handleLogin(e) {
-  e.preventDefault();
-  if (passwordInput.value !== PIN_CORRECTO) {
-    showNotification('Contraseña incorrecta', 'error');
-    passwordInput.value = '';
-    return;
-  }
-  state.user = { authenticated: true };
-  saveToStorage();
-  showApp();
-  loginForm.reset();
-  showNotification('¡Bienvenido!', 'success');
+// === AUTENTICACIÓN ===
+// Sistema de usuarios
+function getAllUsers() {
+  const users = localStorage.getItem('app_users');
+  return users ? JSON.parse(users) : {};
 }
 
-function handleLogout() { 
-  state.user = null; 
-  saveToStorage(); 
+function saveAllUsers(users) {
+  localStorage.setItem('app_users', JSON.stringify(users));
+}
+
+function hashPassword(password) {
+  // Simple hash para demostración - en producción usar bcrypt u otro algoritmo seguro
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+  const passwordConfirm = document.getElementById('register-password-confirm').value;
+
+  if (password !== passwordConfirm) {
+    showNotification('Las contraseñas no coinciden', 'error');
+    return;
+  }
+
+  const users = getAllUsers();
+
+  if (users[username]) {
+    showNotification('El usuario ya existe', 'error');
+    return;
+  }
+
+  users[username] = {
+    username: username,
+    email: email,
+    password: hashPassword(password),
+    createdAt: new Date().toISOString()
+  };
+
+  saveAllUsers(users);
+  showNotification('Cuenta creada exitosamente', 'success');
+  registerForm.reset();
+  showLoginForm();
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  const users = getAllUsers();
+  const user = users[username];
+
+  if (!user || user.password !== hashPassword(password)) {
+    showNotification('Usuario o contraseña incorrectos', 'error');
+    return;
+  }
+
+  state.user = {
+    username: user.username,
+    email: user.email,
+    authenticated: true
+  };
+  saveToStorage();
+  loadFromStorage();
+  showApp();
+  loginForm.reset();
+  showNotification(`¡Bienvenido ${user.username}!`, 'success');
+}
+
+function handleLogout() {
+  state.user = null;
+  state.tasks = [];
+  state.objetivos = [];
+  state.gym = {};
+  state.gymWorkouts = [];
+  state.notes = [];
+  saveToStorage();
   showLogin();
   showNotification('Sesión cerrada', 'info');
 }
 
-function showLogin() { loginScreen.classList.add('active'); appScreen.classList.remove('active'); }
+function showLogin() {
+  loginScreen.classList.add('active');
+  appScreen.classList.remove('active');
+}
+
 function showApp() {
   loginScreen.classList.remove('active');
   appScreen.classList.add('active');
   setTaskDateDefault();
-  switchView(state.currentView);
+  // Siempre mostrar el dashboard al entrar
+  switchView('dashboard');
+}
+
+function showLoginForm() {
+  loginForm.style.display = 'block';
+  registerForm.style.display = 'none';
+  document.getElementById('auth-title').innerHTML = '<span class="accent">Iniciar</span> sesión';
+  document.getElementById('auth-subtitle').textContent = 'Planifica tu semana y cumple tus objetivos';
+}
+
+function showRegisterForm() {
+  loginForm.style.display = 'none';
+  registerForm.style.display = 'block';
+  document.getElementById('auth-title').innerHTML = '<span class="accent">Crear</span> cuenta';
+  document.getElementById('auth-subtitle').textContent = 'Únete y comienza a organizarte hoy';
 }
 
 // === STORAGE ===
-function getTasksKey() { return state.user ? 'tasks_app' : null; }
+function getTasksKey() {
+  return state.user ? `tasks_${state.user.username}` : null;
+}
 
 function loadFromStorage() {
   try {
