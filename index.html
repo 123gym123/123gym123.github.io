@@ -18,11 +18,25 @@
     </header>
     <main class="login-main">
       <div class="login-card">
-        <h1><span class="accent">Iniciar</span> sesión</h1>
-        <p class="subtitle">Planifica tu semana y cumple tus objetivos</p>
-        <form id="login-form">
-          <input type="password" id="password" placeholder="Contraseña (4 dígitos)" required maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+        <h1 id="auth-title"><span class="accent">Iniciar</span> sesión</h1>
+        <p class="subtitle" id="auth-subtitle">Planifica tu semana y cumple tus objetivos</p>
+
+        <!-- Formulario de Login -->
+        <form id="login-form" style="display: block;">
+          <input type="text" id="login-username" placeholder="Usuario" required autocomplete="username">
+          <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
           <button type="submit" class="btn-primary">Entrar</button>
+          <p class="auth-switch">¿No tienes cuenta? <a href="#" id="show-register">Regístrate aquí</a></p>
+        </form>
+
+        <!-- Formulario de Registro -->
+        <form id="register-form" style="display: none;">
+          <input type="text" id="register-username" placeholder="Usuario" required autocomplete="username" minlength="3">
+          <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
+          <input type="password" id="register-password" placeholder="Contraseña" required autocomplete="new-password" minlength="6">
+          <input type="password" id="register-password-confirm" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="6">
+          <button type="submit" class="btn-primary">Crear cuenta</button>
+          <p class="auth-switch">¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión aquí</a></p>
         </form>
       </div>
     </main>
