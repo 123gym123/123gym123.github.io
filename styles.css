@@ -279,7 +279,8 @@ body::before {
   margin-bottom: 2rem;
 }
 
-#login-form input {
+#login-form input,
+#register-form input {
   width: 100%;
   padding: 0.875rem 1rem;
   margin-bottom: 1rem;
@@ -291,14 +292,35 @@ body::before {
   transition: all var(--transition);
 }
 
-#login-form input::placeholder {
+#login-form input::placeholder,
+#register-form input::placeholder {
   color: var(--text-secondary);
 }
 
-#login-form input:focus {
+#login-form input:focus,
+#register-form input:focus {
   outline: none;
   border-color: var(--accent-blue);
   box-shadow: 0 0 0 3px var(--accent-blue-subtle);
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.auth-switch a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition);
+}
+
+.auth-switch a:hover {
+  color: var(--accent-blue-hover);
+  text-decoration: underline;
 }
 
 /* ===== BOTONES ===== */
