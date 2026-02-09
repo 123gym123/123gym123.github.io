@@ -180,10 +180,16 @@ function init() {
 
   document.getElementById('add-gym-btn').addEventListener('click', () => openGymModal());
   document.getElementById('cancel-gym-btn').addEventListener('click', () => closeGymModal());
+  document.getElementById('btn-add-exercise').addEventListener('click', addGymExerciseToList);
   document.getElementById('gym-form').addEventListener('submit', handleGymSubmit);
   document.getElementById('gym-modal').addEventListener('click', e => { if (e.target.id === 'gym-modal') closeGymModal(); });
   document.getElementById('gym-workout-modal').addEventListener('click', e => { if (e.target.id === 'gym-workout-modal') closeWorkoutModal(); });
   document.getElementById('gym-history-modal').addEventListener('click', e => { if (e.target.id === 'gym-history-modal') closeGymHistoryModal(); });
+
+  // Actualizar selector de ejercicios cuando cambia el grupo muscular
+  document.getElementById('gym-focus').addEventListener('change', () => {
+    populateGymExerciseSelector();
+  });
 
   // Configuración
   document.getElementById('export-data-btn').addEventListener('click', exportData);
@@ -590,6 +596,7 @@ const VIEW_TITLES = {
   calendario: 'Calendario',
   objetivos: 'Objetivos',
   gym: 'GYM',
+  ejercicios: 'Ejercicios',
   analisis: 'Análisis',
   config: 'Configuración'
 };
@@ -605,7 +612,8 @@ function switchView(view) {
   const headerActions = document.querySelector('.header-actions');
   if (headerActions) {
     const addTaskBtn = document.getElementById('add-task-btn');
-    addTaskBtn.style.display = ['dashboard','semana','calendario'].includes(view) ? '' : 'none';
+    // Ocultar el botón de nueva tarea en dashboard, semana y calendario
+    addTaskBtn.style.display = 'none';
   }
 
   if (view === 'dashboard') renderDashboard();
@@ -613,6 +621,7 @@ function switchView(view) {
   else if (view === 'calendario') renderCalendar();
   else if (view === 'objetivos') renderObjetivos();
   else if (view === 'gym') renderGym();
+  else if (view === 'ejercicios') renderEjercicios();
   else if (view === 'analisis') renderAnalisis();
 }
 
@@ -878,9 +887,28 @@ function showCalendarDayTasks(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const label = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const html = `<h4>${label}</h4>${tasks.length === 0 ? '<p class="day-empty">Sin tareas</p>' : tasks.map(t => taskItemHtml(dateStr, t)).join('')}`;
+  let html = `<h4>${label}</h4>`;
+
+  if (tasks.length === 0) {
+    html += '<p class="day-empty">Sin tareas</p>';
+  } else {
+    html += tasks.map(t => taskItemHtml(dateStr, t)).join('');
+  }
+
+  // Añadir botón de nueva tarea al final
+  html += `<button class="btn-primary btn-add-task-day" data-date="${dateStr}" style="margin-top: 1rem;">${tasks.length === 0 ? '+ Nueva tarea' : '+ Agregar más tareas'}</button>`;
+
   document.getElementById('calendar-day-tasks').innerHTML = html;
   bindTaskListeners(document.getElementById('calendar-day-tasks'));
+
+  // Añadir evento al botón de nueva tarea
+  const btnAddTask = document.querySelector('.btn-add-task-day');
+  if (btnAddTask) {
+    btnAddTask.addEventListener('click', () => {
+      document.getElementById('task-date').value = dateStr;
+      openTaskModal();
+    });
+  }
 }
 
 // === OBJETIVOS ===
@@ -1005,7 +1033,21 @@ function renderGym() {
   container.innerHTML = DAYS.map(dayKey => {
     const r = routines[dayKey];
     if (!r) return '';
-    const exercises = (r.exercises || '').split('\n').filter(l => l.trim());
+
+    // Soportar ambos formatos: antiguo (string) y nuevo (array)
+    let exercisesList = '';
+    if (typeof r.exercises === 'string') {
+      // Formato antiguo
+      const exercises = r.exercises.split('\n').filter(l => l.trim());
+      exercisesList = exercises.map(ex => `<li>${escapeHtml(ex.trim())}</li>`).join('');
+    } else if (Array.isArray(r.exercises)) {
+      // Formato nuevo
+      exercisesList = r.exercises.map(ex => {
+        const info = `${ex.series}x${ex.reps}${ex.weight > 0 ? ` @ ${ex.weight}kg` : ''}`;
+        return `<li>${escapeHtml(ex.name)} - ${info}</li>`;
+      }).join('');
+    }
+
     const todayWorkout = thisWeekWorkouts.find(w => w.day === dayKey);
     const hasWorkout = !!todayWorkout;
 
@@ -1017,7 +1059,7 @@ function renderGym() {
           ${hasWorkout ? '<span class="workout-status completed">✓ Completado esta semana</span>' : ''}
           <button class="task-delete gym-delete-btn" data-day="${dayKey}" title="Eliminar">×</button>
         </div>
-        <ul class="gym-exercises-list">${exercises.map(ex => `<li>${escapeHtml(ex.trim())}</li>`).join('')}</ul>
+        <ul class="gym-exercises-list">${exercisesList}</ul>
         <button class="btn-start-workout" data-day="${dayKey}">💪 Registrar entrenamiento</button>
       </div>
     `;
@@ -1052,33 +1094,188 @@ function deleteGymRoutine(day) {
   renderGym();
 }
 
+let selectedGymExercises = [];
+
+function populateGymExerciseSelector() {
+  const select = document.getElementById('gym-exercise-select');
+  if (!select) return;
+
+  // Mostrar todos los ejercicios siempre
+  const groups = {};
+  EJERCICIOS_DATABASE.forEach(ej => {
+    if (!groups[ej.group]) groups[ej.group] = [];
+    groups[ej.group].push(ej);
+  });
+
+  // Poblar select con optgroups
+  select.innerHTML = '<option value="">Seleccionar ejercicio...</option>';
+  Object.keys(groups).sort().forEach(group => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = group.toUpperCase();
+    groups[group].forEach(ej => {
+      const option = document.createElement('option');
+      option.value = ej.id;
+      option.textContent = ej.name;
+      optgroup.appendChild(option);
+    });
+    select.appendChild(optgroup);
+  });
+}
+
+function addGymExerciseToList() {
+  const select = document.getElementById('gym-exercise-select');
+  const exerciseId = parseInt(select.value);
+
+  if (!exerciseId) {
+    showNotification('Selecciona un ejercicio primero', 'warning');
+    return;
+  }
+
+  const ejercicio = EJERCICIOS_DATABASE.find(e => e.id === exerciseId);
+  if (!ejercicio) return;
+
+  // Verificar si ya está agregado
+  if (selectedGymExercises.find(e => e.id === exerciseId)) {
+    showNotification('Este ejercicio ya está en la rutina', 'warning');
+    return;
+  }
+
+  selectedGymExercises.push({
+    id: ejercicio.id,
+    name: ejercicio.name,
+    series: 3,
+    reps: 10,
+    weight: 0
+  });
+
+  renderSelectedGymExercises();
+  select.value = '';
+  showNotification(`✓ ${ejercicio.name} añadido a la rutina`, 'success');
+}
+
+function removeGymExercise(index) {
+  selectedGymExercises.splice(index, 1);
+  renderSelectedGymExercises();
+}
+
+function updateGymExercise(index, field, value) {
+  if (selectedGymExercises[index]) {
+    selectedGymExercises[index][field] = parseFloat(value) || 0;
+  }
+}
+
+function renderSelectedGymExercises() {
+  const container = document.getElementById('gym-selected-exercises');
+  if (!container) return;
+
+  if (selectedGymExercises.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = selectedGymExercises.map((ex, index) => `
+    <div class="gym-exercise-item">
+      <div class="gym-exercise-header">
+        <span class="gym-exercise-name">${escapeHtml(ex.name)}</span>
+        <button type="button" class="gym-exercise-remove" onclick="removeGymExercise(${index})">Eliminar</button>
+      </div>
+      <div class="gym-exercise-inputs">
+        <div class="gym-input-group">
+          <label>Series</label>
+          <input type="number" min="1" max="50" value="${ex.series}"
+                 onchange="updateGymExercise(${index}, 'series', this.value)">
+        </div>
+        <div class="gym-input-group">
+          <label>Repeticiones</label>
+          <input type="number" min="1" max="50" value="${ex.reps}"
+                 onchange="updateGymExercise(${index}, 'reps', this.value)">
+        </div>
+        <div class="gym-input-group">
+          <label>Peso (kg)</label>
+          <input type="number" min="0" step="0.5" value="${ex.weight}"
+                 onchange="updateGymExercise(${index}, 'weight', this.value)">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function openGymModal(editDay = null) {
   document.getElementById('gym-modal').classList.add('active');
+
+  selectedGymExercises = [];
+
   if (editDay) {
     const r = state.gym[editDay];
     document.getElementById('gym-day').value = editDay;
     document.getElementById('gym-focus').value = r?.focus || 'pecho';
-    document.getElementById('gym-exercises').value = r?.exercises || '';
+
+    // Cargar ejercicios existentes
+    if (r?.exercises) {
+      // Si es el formato antiguo (string), convertir
+      if (typeof r.exercises === 'string') {
+        const lines = r.exercises.split('\n').filter(l => l.trim());
+        lines.forEach(line => {
+          const match = line.match(/^(.+?)\s+(\d+)x(\d+)$/);
+          if (match) {
+            selectedGymExercises.push({
+              id: Date.now() + Math.random(),
+              name: match[1].trim(),
+              series: parseInt(match[2]),
+              reps: parseInt(match[3]),
+              weight: 0
+            });
+          }
+        });
+      } else if (Array.isArray(r.exercises)) {
+        // Formato nuevo
+        selectedGymExercises = [...r.exercises];
+      }
+    }
   } else {
     document.getElementById('gym-form').reset();
     document.getElementById('gym-day').value = 'lunes';
     document.getElementById('gym-focus').value = 'pecho';
   }
+
+  // Poblar selector con todos los ejercicios
+  populateGymExerciseSelector();
+  renderSelectedGymExercises();
 }
 
 function closeGymModal() {
   document.getElementById('gym-modal').classList.remove('active');
   document.getElementById('gym-form').reset();
+  selectedGymExercises = [];
 }
 
 function handleGymSubmit(e) {
   e.preventDefault();
+
+  if (selectedGymExercises.length === 0) {
+    showNotification('Agrega al menos un ejercicio a la rutina', 'warning');
+    return;
+  }
+
   const day = document.getElementById('gym-day').value;
   const focus = document.getElementById('gym-focus').value;
-  const exercises = document.getElementById('gym-exercises').value;
-  addGymRoutine(day, focus, exercises);
+
+  // Guardar en el nuevo formato
+  state.gym[day] = {
+    focus: focus,
+    exercises: selectedGymExercises.map(e => ({
+      id: e.id,
+      name: e.name,
+      series: e.series,
+      reps: e.reps,
+      weight: e.weight
+    }))
+  };
+
+  saveToStorage();
   closeGymModal();
   renderGym();
+  showNotification('Rutina guardada correctamente', 'success');
 }
 
 // === LISTA ===
@@ -1117,7 +1314,6 @@ function openTaskModal(editTask = null) {
     document.getElementById('task-prioridad').value = editTask.priority || 'media';
     document.getElementById('task-descripcion').value = editTask.description || '';
     document.getElementById('task-estimado').value = editTask.estimado || '';
-    document.getElementById('task-recordatorio').checked = editTask.recordatorio || false;
     taskForm.dataset.editId = editTask.id;
   } else {
     taskForm.reset();
@@ -1142,11 +1338,10 @@ function handleTaskSubmit(e) {
   const priority = document.getElementById('task-prioridad').value;
   const description = document.getElementById('task-descripcion').value.trim();
   const estimado = parseInt(document.getElementById('task-estimado').value) || 0;
-  const recordatorio = document.getElementById('task-recordatorio').checked;
 
   if (!name || !date) return;
 
-  const data = { name, date, time, category, priority, description, estimado, recordatorio };
+  const data = { name, date, time, category, priority, description, estimado };
 
   if (taskForm.dataset.editId) {
     updateTask(taskForm.dataset.editId, data);
@@ -1269,5 +1464,313 @@ function renderGymHistory() {
     `;
   }).join('');
 }
+
+// === EJERCICIOS ===
+// Imágenes: Free Exercise DB (https://github.com/yuhonas/free-exercise-db) - Dominio Público
+const EJERCICIOS_DATABASE = [
+  // PECHO
+  {
+    id: 1,
+    name: 'Press Banca',
+    group: 'pecho',
+    description: 'Ejercicio básico para el desarrollo del pecho. Trabaja pectoral mayor, deltoides anterior y tríceps.',
+    tags: ['compuesto', 'fuerza', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg'
+  },
+  {
+    id: 2,
+    name: 'Press Inclinado',
+    group: 'pecho',
+    description: 'Variante del press banca que enfatiza la porción superior del pecho.',
+    tags: ['compuesto', 'fuerza'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Incline_Bench_Press_-_Medium_Grip/0.jpg'
+  },
+  {
+    id: 3,
+    name: 'Aperturas con Mancuernas',
+    group: 'pecho',
+    description: 'Ejercicio de aislamiento para el pecho. Excelente para el estiramiento muscular.',
+    tags: ['aislamiento', 'estiramiento'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes/0.jpg'
+  },
+  {
+    id: 4,
+    name: 'Fondos en Paralelas',
+    group: 'pecho',
+    description: 'Ejercicio con peso corporal que trabaja pecho, tríceps y hombros.',
+    tags: ['compuesto', 'peso corporal'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg'
+  },
+  {
+    id: 5,
+    name: 'Cruces en Polea',
+    group: 'pecho',
+    description: 'Ejercicio de aislamiento que permite tensión constante en el pecho.',
+    tags: ['aislamiento', 'cables'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg'
+  },
+
+  // ESPALDA
+  {
+    id: 6,
+    name: 'Dominadas',
+    group: 'espalda',
+    description: 'Ejercicio básico para la espalda. Trabaja dorsal ancho, romboides y bíceps.',
+    tags: ['compuesto', 'peso corporal', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/0.jpg'
+  },
+  {
+    id: 7,
+    name: 'Remo con Barra',
+    group: 'espalda',
+    description: 'Ejercicio compuesto fundamental para el grosor de la espalda.',
+    tags: ['compuesto', 'fuerza', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg'
+  },
+  {
+    id: 8,
+    name: 'Jalón al Pecho',
+    group: 'espalda',
+    description: 'Alternativa a las dominadas. Trabaja el dorsal ancho.',
+    tags: ['compuesto', 'cables'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/0.jpg'
+  },
+  {
+    id: 9,
+    name: 'Remo en Polea Baja',
+    group: 'espalda',
+    description: 'Ejercicio para el grosor de la espalda con tensión constante.',
+    tags: ['compuesto', 'cables'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg'
+  },
+  {
+    id: 10,
+    name: 'Peso Muerto',
+    group: 'espalda',
+    description: 'Ejercicio compuesto que trabaja toda la cadena posterior.',
+    tags: ['compuesto', 'fuerza', 'básico', 'full body'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/0.jpg'
+  },
+
+  // PIERNAS
+  {
+    id: 11,
+    name: 'Sentadilla',
+    group: 'piernas',
+    description: 'El rey de los ejercicios. Trabaja cuádriceps, glúteos y femorales.',
+    tags: ['compuesto', 'fuerza', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/0.jpg'
+  },
+  {
+    id: 12,
+    name: 'Prensa de Piernas',
+    group: 'piernas',
+    description: 'Alternativa a la sentadilla con menos carga en la columna.',
+    tags: ['compuesto', 'máquina'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg'
+  },
+  {
+    id: 13,
+    name: 'Extensión de Cuádriceps',
+    group: 'piernas',
+    description: 'Ejercicio de aislamiento para el cuádriceps.',
+    tags: ['aislamiento', 'máquina'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg'
+  },
+  {
+    id: 14,
+    name: 'Curl Femoral',
+    group: 'piernas',
+    description: 'Ejercicio de aislamiento para los femorales.',
+    tags: ['aislamiento', 'máquina'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg'
+  },
+  {
+    id: 15,
+    name: 'Zancadas',
+    group: 'piernas',
+    description: 'Ejercicio unilateral para piernas y glúteos.',
+    tags: ['compuesto', 'unilateral'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Lunges/0.jpg'
+  },
+  {
+    id: 16,
+    name: 'Elevación de Gemelos',
+    group: 'piernas',
+    description: 'Ejercicio específico para los gemelos.',
+    tags: ['aislamiento'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg'
+  },
+
+  // HOMBROS
+  {
+    id: 17,
+    name: 'Press Militar',
+    group: 'hombros',
+    description: 'Ejercicio básico para el desarrollo de hombros.',
+    tags: ['compuesto', 'fuerza', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shoulder_Press/0.jpg'
+  },
+  {
+    id: 18,
+    name: 'Elevaciones Laterales',
+    group: 'hombros',
+    description: 'Ejercicio de aislamiento para el deltoides medio.',
+    tags: ['aislamiento'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg'
+  },
+  {
+    id: 19,
+    name: 'Elevaciones Frontales',
+    group: 'hombros',
+    description: 'Ejercicio de aislamiento para el deltoides anterior.',
+    tags: ['aislamiento'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Dumbbell_Raise/0.jpg'
+  },
+  {
+    id: 20,
+    name: 'Pájaros',
+    group: 'hombros',
+    description: 'Ejercicio para el deltoides posterior.',
+    tags: ['aislamiento'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Rear_Delt_Raise/0.jpg'
+  },
+  {
+    id: 21,
+    name: 'Face Pulls',
+    group: 'hombros',
+    description: 'Ejercicio para deltoides posterior y salud del hombro.',
+    tags: ['cables', 'salud articular'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg'
+  },
+
+  // BRAZOS
+  {
+    id: 22,
+    name: 'Curl con Barra',
+    group: 'brazos',
+    description: 'Ejercicio básico para el desarrollo del bíceps.',
+    tags: ['aislamiento', 'bíceps', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/0.jpg'
+  },
+  {
+    id: 23,
+    name: 'Curl con Mancuernas',
+    group: 'brazos',
+    description: 'Variante del curl que permite mayor rango de movimiento.',
+    tags: ['aislamiento', 'bíceps'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bicep_Curl/0.jpg'
+  },
+  {
+    id: 24,
+    name: 'Curl Martillo',
+    group: 'brazos',
+    description: 'Ejercicio para bíceps y braquial.',
+    tags: ['aislamiento', 'bíceps'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg'
+  },
+  {
+    id: 25,
+    name: 'Press Francés',
+    group: 'brazos',
+    description: 'Ejercicio de aislamiento para el tríceps.',
+    tags: ['aislamiento', 'tríceps'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Triceps_Press/0.jpg'
+  },
+  {
+    id: 26,
+    name: 'Extensiones en Polea',
+    group: 'brazos',
+    description: 'Ejercicio para tríceps con tensión constante.',
+    tags: ['aislamiento', 'tríceps', 'cables'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg'
+  },
+  {
+    id: 27,
+    name: 'Fondos para Tríceps',
+    group: 'brazos',
+    description: 'Ejercicio con peso corporal para tríceps.',
+    tags: ['aislamiento', 'tríceps', 'peso corporal'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Dips/0.jpg'
+  },
+
+  // CORE
+  {
+    id: 28,
+    name: 'Plancha',
+    group: 'core',
+    description: 'Ejercicio isométrico básico para el core.',
+    tags: ['isométrico', 'peso corporal', 'básico'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg'
+  },
+  {
+    id: 29,
+    name: 'Crunch Abdominal',
+    group: 'core',
+    description: 'Ejercicio básico para el recto abdominal.',
+    tags: ['aislamiento', 'peso corporal'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Crunches/0.jpg'
+  },
+  {
+    id: 30,
+    name: 'Elevación de Piernas',
+    group: 'core',
+    description: 'Ejercicio para la porción inferior del core.',
+    tags: ['peso corporal'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg'
+  },
+  {
+    id: 31,
+    name: 'Russian Twist',
+    group: 'core',
+    description: 'Ejercicio para oblicuos y rotación del core.',
+    tags: ['peso corporal', 'rotacional'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/0.jpg'
+  },
+  {
+    id: 32,
+    name: 'Rueda Abdominal',
+    group: 'core',
+    description: 'Ejercicio avanzado para todo el core.',
+    tags: ['peso corporal', 'avanzado'],
+    image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Roller/0.jpg'
+  }
+];
+
+function renderEjercicios() {
+  const filter = document.getElementById('ejercicios-filter').value;
+  const ejerciciosGrid = document.getElementById('ejercicios-grid');
+
+  const ejerciciosFiltrados = filter
+    ? EJERCICIOS_DATABASE.filter(e => e.group === filter)
+    : EJERCICIOS_DATABASE;
+
+  if (ejerciciosFiltrados.length === 0) {
+    ejerciciosGrid.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:2rem;">No hay ejercicios en esta categoría.</p>';
+    return;
+  }
+
+  ejerciciosGrid.innerHTML = ejerciciosFiltrados.map(ejercicio => `
+    <div class="ejercicio-card">
+      <img src="${ejercicio.image}" alt="${escapeHtml(ejercicio.name)}" class="ejercicio-image">
+      <div class="ejercicio-content">
+        <h4 class="ejercicio-name">${escapeHtml(ejercicio.name)}</h4>
+        <span class="ejercicio-group">${escapeHtml(ejercicio.group.toUpperCase())}</span>
+        <p class="ejercicio-description">${escapeHtml(ejercicio.description)}</p>
+        <div class="ejercicio-tags">
+          ${ejercicio.tags.map(tag => `<span class="ejercicio-tag">${escapeHtml(tag)}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Inicializar filtro de ejercicios
+document.addEventListener('DOMContentLoaded', () => {
+  const ejerciciosFilter = document.getElementById('ejercicios-filter');
+  if (ejerciciosFilter) {
+    ejerciciosFilter.addEventListener('change', renderEjercicios);
+  }
+});
 
 init();
