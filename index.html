@@ -78,23 +78,14 @@
     </aside>
 
     <div class="main-content">
-      <header class="header compact">
-        <div class="header-left">
-          <h2 class="page-title" id="page-title">Dashboard</h2>
-          <div class="search-box-compact">
-            <input type="text" id="search-tasks" placeholder="🔍 Buscar tareas..." class="search-input">
-          </div>
-        </div>
-        <div class="header-actions">
-          <button class="btn-primary btn-add" id="add-task-btn">+ Nueva tarea</button>
-        </div>
-      </header>
-      
       <div id="notifications-container" class="notifications-container"></div>
 
       <main class="dashboard-content">
         <!-- Vista Dashboard -->
         <section id="view-dashboard" class="view active">
+          <div class="section-header">
+            <h3><span class="accent">Dashboard</span></h3>
+          </div>
           <div class="stats-grid">
             <div class="stat-card">
               <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -166,11 +157,17 @@
 
         <!-- Vista Semana -->
         <section id="view-semana" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Mi</span> Semana</h3>
+          </div>
           <div class="week-container"></div>
         </section>
 
         <!-- Vista Calendario -->
         <section id="view-calendario" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Calendario</span></h3>
+          </div>
           <div class="calendar-header">
             <button class="btn-icon" id="cal-prev">‹</button>
             <h3 id="cal-month-year">Febrero 2025</h3>
@@ -244,6 +241,9 @@
 
         <!-- Vista Análisis -->
         <section id="view-analisis" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Análisis</span> de productividad</h3>
+          </div>
           <div class="analisis-container">
             <div class="analisis-grid">
               <div class="analisis-card">
@@ -278,6 +278,9 @@
 
         <!-- Vista Configuración -->
         <section id="view-config" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Configuración</span></h3>
+          </div>
           <div class="config-container">
             <div class="config-card">
               <h3><span class="accent">General</span></h3>
@@ -359,9 +362,17 @@
 
         <div class="gym-exercise-builder">
           <div class="gym-exercise-selector">
-            <select id="gym-exercise-select" class="gym-select-exercise">
-              <option value="">Seleccionar ejercicio...</option>
-            </select>
+            <div class="custom-select-wrapper">
+              <div class="custom-select" id="custom-exercise-select">
+                <span class="custom-select-trigger">Seleccionar ejercicio...</span>
+                <div class="custom-options">
+                  <div class="custom-options-search">
+                    <input type="text" id="gym-exercise-search" class="gym-search-input" placeholder="🔍 Buscar ejercicio..." autocomplete="off">
+                  </div>
+                  <div class="custom-options-list" id="gym-exercise-options"></div>
+                </div>
+              </div>
+            </div>
             <button type="button" class="btn-secondary btn-add-exercise" id="btn-add-exercise">+ Agregar ejercicio</button>
           </div>
 
