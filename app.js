@@ -13,7 +13,43 @@ const state = {
   timerRunning: false,
   timerSeconds: 1500,
   currentStreak: 0,
-  currentWorkoutDay: null
+  currentWorkoutDay: null,
+  // Cronómetro state
+  cronometro: {
+    isRunning: false,
+    timeLeft: 25 * 60,
+    totalTime: 25 * 60,
+    interval: null
+  },
+  // Mis Datos
+  misDatos: {
+    nombre: '',
+    edad: '',
+    genero: '',
+    fechaNacimiento: '',
+    altura: '',
+    peso: '',
+    objetivo: '',
+    nivelActividad: '',
+    // Información avanzada
+    grasaCorporal: '',
+    masaMuscular: '',
+    grasaVisceral: '',
+    aguaCorporal: '',
+    masaOsea: '',
+    metabolismoBasal: '',
+    // Perímetros
+    perimetroPecho: '',
+    perimetroCintura: '',
+    perimetroCadera: '',
+    perimetroMuslo: '',
+    perimetroBrazo: '',
+    perimetroAntebrazo: '',
+    perimetroPantorrilla: '',
+    perimetroCuello: ''
+  },
+  // Progreso
+  progresos: []
 };
 
 const GYM_FOCUS = { pecho: 'Pecho', espalda: 'Espalda', piernas: 'Piernas', hombros: 'Hombros', brazos: 'Brazos', core: 'Core', full: 'Full body', cardio: 'Cardio', otro: 'Otro' };
@@ -33,7 +69,12 @@ const taskForm = document.getElementById('task-form');
 const cancelTaskBtn = document.getElementById('cancel-task-btn');
 
 // Helpers
-function formatDate(d) { return d.toISOString().slice(0, 10); }
+function formatDate(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 function today() { return formatDate(new Date()); }
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -157,7 +198,10 @@ function init() {
     e.preventDefault();
     showLoginForm();
   });
-  logoutBtn.addEventListener('click', handleLogout);
+  logoutBtn.addEventListener('click', showLogoutModal);
+  document.getElementById('cancel-logout-btn').addEventListener('click', closeLogoutModal);
+  document.getElementById('confirm-logout-btn').addEventListener('click', confirmLogout);
+  document.getElementById('logout-modal').addEventListener('click', e => { if (e.target.id === 'logout-modal') closeLogoutModal(); });
   cancelTaskBtn.addEventListener('click', closeTaskModal);
   taskForm.addEventListener('submit', handleTaskSubmit);
   taskModal.addEventListener('click', e => { if (e.target === taskModal) closeTaskModal(); });
@@ -180,14 +224,21 @@ function init() {
   document.getElementById('objetivo-form').addEventListener('submit', handleObjetivoSubmit);
   document.getElementById('objetivo-modal').addEventListener('click', e => { if (e.target.id === 'objetivo-modal') closeObjetivoModal(); });
 
+  const dashboardFilter = document.getElementById('dashboard-objetivos-filter');
+  if (dashboardFilter) dashboardFilter.addEventListener('change', () => renderDashboard());
+  const verMisBtn = document.getElementById('ver-mis-objetivos-btn');
+  if (verMisBtn) verMisBtn.addEventListener('click', () => switchView('objetivos'));
+
 
   document.getElementById('add-gym-btn').addEventListener('click', () => openGymModal());
   document.getElementById('cancel-gym-btn').addEventListener('click', () => closeGymModal());
-  document.getElementById('btn-add-exercise').addEventListener('click', addGymExerciseToList);
+  // El botón de agregar ejercicio ya no existe - ahora se agrega automáticamente al seleccionar
+  // document.getElementById('btn-add-exercise').addEventListener('click', addGymExerciseToList);
   document.getElementById('gym-form').addEventListener('submit', handleGymSubmit);
   document.getElementById('gym-modal').addEventListener('click', e => { if (e.target.id === 'gym-modal') closeGymModal(); });
   document.getElementById('gym-workout-modal').addEventListener('click', e => { if (e.target.id === 'gym-workout-modal') closeWorkoutModal(); });
   document.getElementById('gym-history-modal').addEventListener('click', e => { if (e.target.id === 'gym-history-modal') closeGymHistoryModal(); });
+  document.getElementById('exercise-info-modal').addEventListener('click', e => { if (e.target.id === 'exercise-info-modal') closeExerciseInfoModal(); });
 
   // Actualizar selector de ejercicios cuando cambia el grupo muscular
   document.getElementById('gym-focus').addEventListener('change', () => {
@@ -230,6 +281,12 @@ function init() {
   document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change', importData);
   document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
+
+  // Ejercicios - filtro
+  const ejerciciosFilter = document.getElementById('ejercicios-filter');
+  if (ejerciciosFilter) {
+    ejerciciosFilter.addEventListener('change', renderEjercicios);
+  }
 
   // Timer
   document.getElementById('timer-start').addEventListener('click', startTimer);
@@ -327,6 +384,19 @@ function handleLogin(e) {
   showNotification(`¡Bienvenido ${user.username}!`, 'success');
 }
 
+function showLogoutModal() {
+  document.getElementById('logout-modal').classList.add('active');
+}
+
+function closeLogoutModal() {
+  document.getElementById('logout-modal').classList.remove('active');
+}
+
+function confirmLogout() {
+  closeLogoutModal();
+  handleLogout();
+}
+
 function handleLogout() {
   state.user = null;
   state.tasks = [];
@@ -393,6 +463,17 @@ function loadFromStorage() {
       const n = localStorage.getItem(key + '_notes');
       if (n) { state.notes = JSON.parse(n); if (!Array.isArray(state.notes)) state.notes = []; }
     }
+    else {
+      // fallback for non-authenticated usage: load public gym data
+      const publicGym = localStorage.getItem('public_gym');
+      if (publicGym) {
+        try { state.gym = JSON.parse(publicGym); } catch (e) { state.gym = {}; }
+      }
+      const publicGw = localStorage.getItem('public_gymWorkouts');
+      if (publicGw) {
+        try { state.gymWorkouts = JSON.parse(publicGw); } catch (e) { state.gymWorkouts = []; }
+      }
+    }
   } catch (e) {}
 }
 
@@ -407,6 +488,13 @@ function saveToStorage() {
       localStorage.setItem(key + '_gym', JSON.stringify(state.gym));
       localStorage.setItem(key + '_gymWorkouts', JSON.stringify(state.gymWorkouts));
       localStorage.setItem(key + '_notes', JSON.stringify(state.notes));
+    } else {
+      // fallback save for non-authenticated use
+      localStorage.setItem('public_tasks', JSON.stringify(state.tasks));
+      localStorage.setItem('public_objetivos', JSON.stringify(state.objetivos));
+      localStorage.setItem('public_gym', JSON.stringify(state.gym));
+      localStorage.setItem('public_gymWorkouts', JSON.stringify(state.gymWorkouts));
+      localStorage.setItem('public_notes', JSON.stringify(state.notes));
     }
   } catch (e) {}
 }
@@ -633,29 +721,99 @@ function calculateStreak() {
 
 function renderAnalisis() {
   calculateStreak();
-  
+
+  // Destruir gráficos anteriores si existen
+  const chartIds = ['chart-weekly', 'chart-category', 'chart-priority', 'chart-time', 'chart-monthly-progress', 'chart-trend-30days', 'chart-weekly-comparison', 'chart-heatmap'];
+  chartIds.forEach(id => {
+    const canvas = document.getElementById(id);
+    if (canvas && canvas.chart) {
+      canvas.chart.destroy();
+    }
+  });
+
   // Datos para gráficas
   const weekDates = getWeekDates();
-  const weekLabels = weekDates.map(d => d.getDate());
+  const weekLabels = weekDates.map(d => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][d.getDay()]);
   const weekCompletedData = weekDates.map(d => {
     const tasks = getTasksByDate(formatDate(d));
     return tasks.filter(t => t.completed).length;
   });
-  
+
   const categoryData = {};
   Object.keys(CATEGORIAS).forEach(cat => {
     categoryData[CATEGORIAS[cat]] = state.tasks.filter(t => t.category === cat).length;
   });
-  
+
   const priorityData = {};
   Object.keys(PRIORIDADES).forEach(pri => {
     priorityData[PRIORIDADES[pri]] = state.tasks.filter(t => t.priority === pri).length;
   });
-  
+
+  // === ESTADÍSTICAS PRINCIPALES ===
+  const totalCompletadas = state.tasks.filter(t => t.completed).length;
+  const tiempoTotal = state.tasks.filter(t => t.completed).reduce((sum, t) => sum + (t.estimado || 0), 0);
+  const promedioDia = weekDates.length > 0 ? Math.round(weekCompletedData.reduce((a, b) => a + b, 0) / 7) : 0;
+  const totalTareas = state.tasks.length;
+  const efectividad = totalTareas > 0 ? Math.round((totalCompletadas / totalTareas) * 100) : 0;
+
+  document.getElementById('analisis-total-completadas').textContent = totalCompletadas;
+  document.getElementById('analisis-tiempo-total').textContent = (tiempoTotal / 60).toFixed(1) + 'h';
+  document.getElementById('analisis-promedio-dia').textContent = promedioDia;
+  document.getElementById('analisis-efectividad').textContent = efectividad + '%';
+
+  // === GRÁFICAS ===
+
+  // Gráfica de tendencia de 30 días
+  const ctxTrend = document.getElementById('chart-trend-30days');
+  if (ctxTrend && typeof Chart !== 'undefined') {
+    const last30Days = [];
+    const last30DaysData = [];
+
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last30Days.push(d.getDate() + '/' + (d.getMonth() + 1));
+
+      const dateStr = formatDate(d);
+      const tasks = getTasksByDate(dateStr);
+      last30DaysData.push(tasks.filter(t => t.completed).length);
+    }
+
+    ctxTrend.chart = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: last30Days,
+        datasets: [{
+          label: 'Tareas completadas',
+          data: last30DaysData,
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
   // Gráfica de productividad semanal
   const ctxWeekly = document.getElementById('chart-weekly');
   if (ctxWeekly && typeof Chart !== 'undefined') {
-    new Chart(ctxWeekly, {
+    ctxWeekly.chart = new Chart(ctxWeekly, {
       type: 'bar',
       data: {
         labels: weekLabels,
@@ -667,14 +825,18 @@ function renderAnalisis() {
           borderWidth: 1
         }]
       },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: { y: { beginAtZero: true } }
+      }
     });
   }
-  
+
   // Gráfica por categoría
   const ctxCategory = document.getElementById('chart-category');
   if (ctxCategory && typeof Chart !== 'undefined') {
-    new Chart(ctxCategory, {
+    ctxCategory.chart = new Chart(ctxCategory, {
       type: 'doughnut',
       data: {
         labels: Object.keys(categoryData),
@@ -683,14 +845,14 @@ function renderAnalisis() {
           backgroundColor: ['#3b82f6', '#eab308', '#10b981', '#ef4444', '#8b5cf6']
         }]
       },
-      options: { responsive: true }
+      options: { responsive: true, maintainAspectRatio: true }
     });
   }
-  
+
   // Gráfica por prioridad
   const ctxPriority = document.getElementById('chart-priority');
   if (ctxPriority && typeof Chart !== 'undefined') {
-    new Chart(ctxPriority, {
+    ctxPriority.chart = new Chart(ctxPriority, {
       type: 'pie',
       data: {
         labels: Object.keys(priorityData),
@@ -699,18 +861,285 @@ function renderAnalisis() {
           backgroundColor: ['#ef4444', '#eab308', '#22c55e']
         }]
       },
-      options: { responsive: true }
+      options: { responsive: true, maintainAspectRatio: true }
     });
   }
-  
-  // Estadísticas de progreso
-  const total = state.tasks.length;
-  const completadas = state.tasks.filter(t => t.completed).length;
-  const porcentaje = total > 0 ? Math.round((completadas / total) * 100) : 0;
-  
-  document.getElementById('progress-rate').style.width = porcentaje + '%';
-  document.getElementById('progress-rate-text').textContent = porcentaje + '%';
-  document.getElementById('current-streak').textContent = state.currentStreak;
+
+  // Gráfica de tiempo dedicado
+  const ctxTime = document.getElementById('chart-time');
+  if (ctxTime && typeof Chart !== 'undefined') {
+    const timeData = weekDates.map(d => {
+      const tasks = getTasksByDate(formatDate(d)).filter(t => t.completed);
+      return tasks.reduce((sum, t) => sum + (t.estimado || 0), 0);
+    });
+
+    ctxTime.chart = new Chart(ctxTime, {
+      type: 'line',
+      data: {
+        labels: weekLabels,
+        datasets: [{
+          label: 'Tiempo (min)',
+          data: timeData,
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  // Gráfica de comparativa semanal (esta semana vs semana anterior)
+  const ctxComparison = document.getElementById('chart-weekly-comparison');
+  if (ctxComparison && typeof Chart !== 'undefined') {
+    const lastWeekDates = weekDates.map(d => {
+      const lastWeek = new Date(d);
+      lastWeek.setDate(d.getDate() - 7);
+      return lastWeek;
+    });
+
+    const thisWeekData = weekDates.map(d => {
+      const tasks = getTasksByDate(formatDate(d));
+      return tasks.filter(t => t.completed).length;
+    });
+
+    const lastWeekData = lastWeekDates.map(d => {
+      const tasks = getTasksByDate(formatDate(d));
+      return tasks.filter(t => t.completed).length;
+    });
+
+    ctxComparison.chart = new Chart(ctxComparison, {
+      type: 'bar',
+      data: {
+        labels: weekLabels,
+        datasets: [
+          {
+            label: 'Esta semana',
+            data: thisWeekData,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Semana anterior',
+            data: lastWeekData,
+            backgroundColor: 'rgba(156, 163, 175, 0.3)',
+            borderColor: 'rgba(156, 163, 175, 0.6)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  // Heatmap de actividad (radar chart de días de la semana)
+  const ctxHeatmap = document.getElementById('chart-heatmap');
+  if (ctxHeatmap && typeof Chart !== 'undefined') {
+    const diasActividad = {};
+    DAYS.forEach(day => { diasActividad[day] = 0; });
+
+    state.tasks.filter(t => t.completed).forEach(t => {
+      const dayKey = dateToDayKey(t.date);
+      if (diasActividad[dayKey] !== undefined) {
+        diasActividad[dayKey]++;
+      }
+    });
+
+    const radarData = DAYS.map(day => diasActividad[day]);
+    const radarLabels = DAYS.map(day => DAY_LABELS[day]);
+
+    ctxHeatmap.chart = new Chart(ctxHeatmap, {
+      type: 'radar',
+      data: {
+        labels: radarLabels,
+        datasets: [{
+          label: 'Tareas completadas',
+          data: radarData,
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          r: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  // === MEJORAS ===
+
+  // Calcular semana anterior
+  const lastWeekDates = weekDates.map(d => {
+    const lastWeek = new Date(d);
+    lastWeek.setDate(d.getDate() - 7);
+    return lastWeek;
+  });
+
+  const lastWeekCompleted = lastWeekDates.reduce((sum, d) => {
+    const tasks = getTasksByDate(formatDate(d));
+    return sum + tasks.filter(t => t.completed).length;
+  }, 0);
+
+  const thisWeekCompleted = weekCompletedData.reduce((a, b) => a + b, 0);
+  const mejoraCompletadas = thisWeekCompleted - lastWeekCompleted;
+  const mejoraPorcentaje = lastWeekCompleted > 0 ? Math.round((mejoraCompletadas / lastWeekCompleted) * 100) : 0;
+
+  document.getElementById('mejora-tareas-completadas').textContent = mejoraCompletadas >= 0 ? `+${mejoraCompletadas}` : mejoraCompletadas;
+  document.getElementById('mejora-tareas-comparacion').textContent = `${mejoraPorcentaje >= 0 ? '+' : ''}${mejoraPorcentaje}% vs. semana anterior`;
+
+  // Racha
+  const mejorRacha = state.currentStreak; // Aquí podrías guardar la mejor racha en el storage
+  document.getElementById('mejora-racha').textContent = state.currentStreak + ' días';
+  document.getElementById('mejora-racha-comparacion').textContent = `Mejor racha: ${mejorRacha} días`;
+
+  // Puntualidad
+  const tareasConFecha = state.tasks.filter(t => t.completed && t.date);
+  const tareasATiempo = tareasConFecha.filter(t => t.date <= today()).length;
+  const puntualidad = tareasConFecha.length > 0 ? Math.round((tareasATiempo / tareasConFecha.length) * 100) : 0;
+  document.getElementById('mejora-puntualidad').textContent = puntualidad + '%';
+  document.getElementById('mejora-puntualidad-comparacion').textContent = `${tareasATiempo} de ${tareasConFecha.length} tareas`;
+
+  // Tiempo promedio
+  const tareasCompletadasConTiempo = state.tasks.filter(t => t.completed && t.estimado > 0);
+  const tiempoPromedio = tareasCompletadasConTiempo.length > 0
+    ? Math.round(tareasCompletadasConTiempo.reduce((sum, t) => sum + t.estimado, 0) / tareasCompletadasConTiempo.length)
+    : 0;
+  document.getElementById('mejora-tiempo-promedio').textContent = tiempoPromedio + ' min';
+  document.getElementById('mejora-tiempo-comparacion').textContent = 'por tarea';
+
+  // === ANÁLISIS DE HÁBITOS ===
+
+  // Días más productivos
+  const diasProductividad = {};
+  DAYS.forEach(day => { diasProductividad[day] = 0; });
+
+  state.tasks.filter(t => t.completed).forEach(t => {
+    const dayKey = dateToDayKey(t.date);
+    if (diasProductividad[dayKey] !== undefined) {
+      diasProductividad[dayKey]++;
+    }
+  });
+
+  const maxDiaProductividad = Math.max(...Object.values(diasProductividad), 1);
+  const diasProductividadHtml = DAYS.map(day => {
+    const count = diasProductividad[day];
+    const percentage = (count / maxDiaProductividad) * 100;
+    return `<div class="habito-item">
+      <span class="habito-dia">${DAY_LABELS[day]}</span>
+      <div class="habito-bar"><div class="habito-bar-fill" style="width: ${percentage}%"></div></div>
+      <span class="habito-valor">${count}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('habito-dias-productivos').innerHTML = diasProductividadHtml;
+
+  // Horas más productivas
+  const horasProductividad = { manana: 0, tarde: 0, noche: 0 };
+  state.tasks.filter(t => t.completed && t.time).forEach(t => {
+    const hour = parseInt(t.time.split(':')[0]);
+    if (hour >= 6 && hour < 12) horasProductividad.manana++;
+    else if (hour >= 12 && hour < 18) horasProductividad.tarde++;
+    else horasProductividad.noche++;
+  });
+
+  const maxHoraProductividad = Math.max(...Object.values(horasProductividad), 1);
+  const horasLabels = { manana: 'Mañana (6-12h)', tarde: 'Tarde (12-18h)', noche: 'Noche (18-6h)' };
+  const horasProductividadHtml = Object.keys(horasProductividad).map(periodo => {
+    const count = horasProductividad[periodo];
+    const percentage = (count / maxHoraProductividad) * 100;
+    return `<div class="habito-item">
+      <span class="habito-dia">${horasLabels[periodo]}</span>
+      <div class="habito-bar"><div class="habito-bar-fill" style="width: ${percentage}%"></div></div>
+      <span class="habito-valor">${count}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('habito-horas-productivas').innerHTML = horasProductividadHtml;
+
+  // Categorías favoritas
+  const categoriasCount = {};
+  Object.keys(CATEGORIAS).forEach(cat => {
+    categoriasCount[CATEGORIAS[cat]] = state.tasks.filter(t => t.category === cat && t.completed).length;
+  });
+
+  const maxCategoriaCount = Math.max(...Object.values(categoriasCount), 1);
+  const categoriasHtml = Object.keys(categoriasCount).map(catLabel => {
+    const count = categoriasCount[catLabel];
+    const percentage = (count / maxCategoriaCount) * 100;
+    return `<div class="habito-item">
+      <span class="habito-dia">${catLabel}</span>
+      <div class="habito-bar"><div class="habito-bar-fill" style="width: ${percentage}%"></div></div>
+      <span class="habito-valor">${count}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('habito-categorias').innerHTML = categoriasHtml;
+
+  // === EVOLUCIÓN MENSUAL ===
+  const ctxMonthly = document.getElementById('chart-monthly-progress');
+  if (ctxMonthly && typeof Chart !== 'undefined') {
+    // Últimos 6 meses
+    const monthsLabels = [];
+    const monthsData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const monthName = d.toLocaleDateString('es-ES', { month: 'short' });
+      monthsLabels.push(monthName);
+
+      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+
+      const monthTasks = state.tasks.filter(t => {
+        const taskDate = new Date(t.date + 'T12:00:00');
+        return taskDate >= monthStart && taskDate <= monthEnd && t.completed;
+      });
+
+      monthsData.push(monthTasks.length);
+    }
+
+    ctxMonthly.chart = new Chart(ctxMonthly, {
+      type: 'line',
+      data: {
+        labels: monthsLabels,
+        datasets: [{
+          label: 'Tareas completadas',
+          data: monthsData,
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
 }
 
 // === VISTAS ===
@@ -722,6 +1151,9 @@ const VIEW_TITLES = {
   gym: 'GYM',
   ejercicios: 'Ejercicios',
   analisis: 'Análisis',
+  cronometro: 'Cronómetro',
+  misdatos: 'Mis Datos',
+  progreso: 'Progreso',
   config: 'Configuración'
 };
 
@@ -738,6 +1170,9 @@ function switchView(view) {
   else if (view === 'gym') renderGym();
   else if (view === 'ejercicios') renderEjercicios();
   else if (view === 'analisis') renderAnalisis();
+  else if (view === 'cronometro') renderCronometro();
+  else if (view === 'misdatos') renderMisDatos();
+  else if (view === 'progreso') renderProgreso();
 }
 
 function refreshCurrentView() {
@@ -772,18 +1207,42 @@ function renderDashboard() {
   // Calcular tareas atrasadas
   const atrasadas = state.tasks.filter(t => !t.completed && t.date < hoy).length;
 
-  document.getElementById('stat-hoy').textContent = tasksHoy.length;
-  document.getElementById('stat-completadas').textContent = completadasHoy;
-  document.getElementById('stat-racha').textContent = state.currentStreak;
-  document.getElementById('stat-progreso-semana').textContent = progresoSemanal + '%';
-  document.getElementById('stat-tiempo-estimado').textContent = tiempoHoras + 'h';
-  document.getElementById('stat-atrasadas').textContent = atrasadas;
+  // Total de tareas completadas (todas)
+  const totalCompletadas = state.tasks.filter(t => t.completed).length;
+
+  // Tasa de efectividad
+  const totalTareas = state.tasks.length;
+  const efectividad = totalTareas > 0 ? Math.round((totalCompletadas / totalTareas) * 100) : 0;
+
+  // Tiempo invertido en tareas completadas
+  const tiempoInvertido = state.tasks.filter(t => t.completed).reduce((sum, t) => sum + (t.estimado || 0), 0);
+  const tiempoInvertidoHoras = (tiempoInvertido / 60).toFixed(1);
+
+  // Promedio semanal de tareas completadas
+  const promedioSemanal = Math.round(completedTasksWeek / 7);
+
+  // Objetivos completados
+  const objetivosCompletados = state.objetivos.filter(o => o.completed).length;
+
+  const elHoy = document.getElementById('stat-hoy'); if (elHoy) elHoy.textContent = tasksHoy.length;
+  const elCompletadas = document.getElementById('stat-completadas'); if (elCompletadas) elCompletadas.textContent = completadasHoy;
+  const elRacha = document.getElementById('stat-racha'); if (elRacha) elRacha.textContent = state.currentStreak;
+  const elProgresoSemana = document.getElementById('stat-progreso-semana'); if (elProgresoSemana) elProgresoSemana.textContent = progresoSemanal + '%';
+  const elTiempoEstimado = document.getElementById('stat-tiempo-estimado'); if (elTiempoEstimado) elTiempoEstimado.textContent = tiempoHoras + 'h';
+  const elAtrasadas = document.getElementById('stat-atrasadas'); if (elAtrasadas) elAtrasadas.textContent = atrasadas;
+  const elTotalCompletadas = document.getElementById('stat-total-completadas'); if (elTotalCompletadas) elTotalCompletadas.textContent = totalCompletadas;
+  const elEfectividad = document.getElementById('stat-efectividad'); if (elEfectividad) elEfectividad.textContent = efectividad + '%';
+  const elTiempoInvertido = document.getElementById('stat-tiempo-invertido'); if (elTiempoInvertido) elTiempoInvertido.textContent = tiempoInvertidoHoras + 'h';
+  const elPromedioSemanal = document.getElementById('stat-promedio-semanal'); if (elPromedioSemanal) elPromedioSemanal.textContent = promedioSemanal;
+  const elCompletadasSemana = document.getElementById('stat-completadas-semana'); if (elCompletadasSemana) elCompletadasSemana.textContent = completedTasksWeek;
+  const elObjetivosCompletados = document.getElementById('stat-objetivos-completados'); if (elObjetivosCompletados) elObjetivosCompletados.textContent = objetivosCompletados;
 
   // Preparar objetivos para mostrar
-  const objetivosPendientes = state.objetivos.filter(o => !o.completed && o.fechaLimite);
-  const objetivosOrdenados = objetivosPendientes.sort((a, b) => {
-    return new Date(a.fechaLimite) - new Date(b.fechaLimite);
-  }).slice(0, 3);
+  const objetivosPendientes = state.objetivos.filter(o => !o.completed);
+  const objetivosOrdenados = objetivosPendientes
+    .filter(o => o.fechaLimite)
+    .sort((a, b) => new Date(a.fechaLimite) - new Date(b.fechaLimite))
+    .slice(0, 3);
 
   const proximas = getAllTasks().filter(t => !t.completed).slice(0, 5);
   const proximasEl = document.getElementById('dashboard-proximas');
@@ -793,30 +1252,41 @@ function renderDashboard() {
   bindTaskListeners(proximasEl);
 
   const objetivosEl = document.getElementById('dashboard-objetivos');
+  if (!objetivosEl) return;
   if (objetivosOrdenados.length === 0) {
     objetivosEl.innerHTML = '<div class="day-empty">No hay objetivos con fecha límite</div>';
   } else {
     objetivosEl.innerHTML = objetivosOrdenados.map(obj => {
-      const diasRestantes = Math.ceil((new Date(obj.fechaLimite + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-      let claseUrgencia = '';
-      let textoTiempo = '';
-      if (diasRestantes < 0) {
-        claseUrgencia = 'vencido';
-        textoTiempo = `Vencido hace ${Math.abs(diasRestantes)}d`;
-      } else if (diasRestantes === 0) {
-        claseUrgencia = 'hoy';
-        textoTiempo = 'Vence hoy';
-      } else if (diasRestantes <= 7) {
-        claseUrgencia = 'urgente';
-        textoTiempo = `${diasRestantes}d restantes`;
-      } else {
-        textoTiempo = `${diasRestantes}d restantes`;
+      const inicio = obj.fechaInicio || '';
+      const fin = obj.fechaLimite || '';
+      const now = new Date(hoy + 'T00:00:00');
+      const finDate = fin ? new Date(fin + 'T00:00:00') : null;
+      let tiempo = '';
+      if (finDate) {
+        const diasRestantes = Math.ceil((finDate - now) / (1000 * 60 * 60 * 24));
+        if (diasRestantes < 0) tiempo = `Vencido ${Math.abs(diasRestantes)}d`;
+        else if (diasRestantes === 0) tiempo = 'Vence hoy';
+        else tiempo = `${diasRestantes}d restantes`;
       }
-      return `<div class="objetivo-mini-item ${claseUrgencia}">
-        <span class="objetivo-mini-text">${escapeHtml(obj.text)}</span>
-        <span class="objetivo-mini-tiempo">${textoTiempo}</span>
-      </div>`;
+      return `
+        <div class="task-item objetivo-task ${obj.completed ? 'completed' : ''}" data-id="${obj.id}">
+          <div class="task-check">${obj.completed ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
+          <div class="task-content">
+            <div class="task-name">${escapeHtml(obj.text)}</div>
+            <div class="task-time">${inicio ? 'Inicio: ' + inicio + (fin ? ' · ' : '') : ''}${fin ? 'Fin: ' + fin : ''}${tiempo ? ' · ' + tiempo : ''}</div>
+          </div>
+          <button class="task-delete" data-id="${obj.id}" title="Eliminar">×</button>
+        </div>`;
     }).join('');
+
+    // bind listeners for these items
+    objetivosEl.querySelectorAll('.task-check').forEach(btn => {
+      btn.onclick = e => { e.stopPropagation(); const id = btn.closest('.task-item').dataset.id; toggleObjetivo(id); };
+    });
+    objetivosEl.querySelectorAll('.task-item').forEach(item => {
+      item.onclick = e => { if (e.target.closest('.task-delete')) return; const id = item.dataset.id; toggleObjetivo(id); };
+    });
+    objetivosEl.querySelectorAll('.task-delete').forEach(btn => { btn.onclick = e => { e.stopPropagation(); deleteObjetivo(btn.dataset.id); }; });
   }
 
   const resumenEl = document.getElementById('dashboard-resumen');
@@ -829,6 +1299,154 @@ function renderDashboard() {
       <span class="day-count">${ts.length}</span>
     </div>`;
   }).join('');
+
+  // Renderizar gráficas del dashboard solo si Chart.js está disponible
+  if (typeof Chart !== 'undefined') {
+    try {
+      // Destruir gráficas previas del dashboard si existen
+      ['dashboard-chart-weekly', 'dashboard-chart-priority', 'dashboard-chart-comparison'].forEach(id => {
+        if (window[id]) {
+          window[id].destroy();
+          window[id] = null;
+        }
+      });
+
+      // Gráfica 1: Progreso semanal (tareas por día)
+      const weeklyData = weekDates.map((d) => {
+        const dateStr = formatDate(d);
+        const ts = getTasksByDate(dateStr);
+        return ts.length;
+      });
+
+      const weeklyCtx = document.getElementById('dashboard-chart-weekly');
+      if (weeklyCtx) {
+        window['dashboard-chart-weekly'] = new Chart(weeklyCtx, {
+          type: 'bar',
+          data: {
+            labels: DAYS.map(d => DAY_LABELS[d]),
+            datasets: [{
+              label: 'Tareas',
+              data: weeklyData,
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
+
+      // Gráfica 2: Tareas por prioridad
+      const prioridadCounts = {
+        alta: state.tasks.filter(t => t.priority === 'alta').length,
+        media: state.tasks.filter(t => t.priority === 'media').length,
+        baja: state.tasks.filter(t => t.priority === 'baja').length
+      };
+
+      const priorityCtx = document.getElementById('dashboard-chart-priority');
+      if (priorityCtx) {
+        window['dashboard-chart-priority'] = new Chart(priorityCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Alta', 'Media', 'Baja'],
+            datasets: [{
+              data: [prioridadCounts.alta, prioridadCounts.media, prioridadCounts.baja],
+              backgroundColor: [
+                'rgba(239, 68, 68, 0.7)',
+                'rgba(251, 191, 36, 0.7)',
+                'rgba(34, 197, 94, 0.7)'
+              ],
+              borderColor: [
+                'rgba(239, 68, 68, 1)',
+                'rgba(251, 191, 36, 1)',
+                'rgba(34, 197, 94, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              }
+            }
+          }
+        });
+      }
+
+      // Gráfica 3: Comparación esta semana vs semana pasada
+      const lastWeekStart = new Date(weekDates[0]);
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+      const lastWeekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(lastWeekStart);
+        d.setDate(d.getDate() + i);
+        lastWeekDates.push(d);
+      }
+
+      const lastWeekData = lastWeekDates.map(d => {
+        const dateStr = formatDate(d);
+        return getTasksByDate(dateStr).length;
+      });
+
+      const comparisonCtx = document.getElementById('dashboard-chart-comparison');
+      if (comparisonCtx) {
+        window['dashboard-chart-comparison'] = new Chart(comparisonCtx, {
+          type: 'bar',
+          data: {
+            labels: DAYS.map(d => DAY_LABELS[d]),
+            datasets: [
+              {
+                label: 'Esta semana',
+                data: weeklyData,
+                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Semana pasada',
+                data: lastWeekData,
+                backgroundColor: 'rgba(156, 163, 175, 0.4)',
+                borderColor: 'rgba(156, 163, 175, 0.8)',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error al renderizar gráficas del dashboard:', error);
+    }
+  }
 }
 
 // === SEMANA ===
@@ -889,8 +1507,7 @@ function renderSemana() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const dateStr = btn.dataset.date;
-      document.getElementById('task-date').value = dateStr;
-      openTaskModal();
+      openTaskModal(null, dateStr);
     });
   });
 }
@@ -983,6 +1600,9 @@ function renderCalendar() {
 
   document.querySelectorAll('#calendar-grid .cal-day').forEach(el => {
     el.addEventListener('click', () => showCalendarDayTasks(el.dataset.date));
+    el.addEventListener('dblclick', () => {
+      openTaskModal(null, el.dataset.date);
+    });
   });
 
   const sel = document.querySelector('.cal-day[data-date="' + todayStr + '"]');
@@ -1020,63 +1640,109 @@ function showCalendarDayTasks(dateStr) {
   const btnAddTask = document.querySelector('.btn-add-task-day');
   if (btnAddTask) {
     btnAddTask.addEventListener('click', () => {
-      document.getElementById('task-date').value = dateStr;
-      openTaskModal();
+      openTaskModal(null, dateStr);
     });
   }
 }
 
 // === OBJETIVOS ===
 function renderObjetivos() {
-  const container = document.getElementById('objetivos-list');
-  const list = state.objetivos;
-  if (list.length === 0) {
-    container.innerHTML = '<div class="day-empty">Añade tus objetivos y márcalos cuando los cumplas</div>';
-    return;
+  const pendientesEl = document.getElementById('objetivos-pendientes');
+  const cumplidosEl = document.getElementById('objetivos-cumplidos');
+  const list = state.objetivos || [];
+  const hoy = today();
+
+  const pendientes = list.filter(o => !o.completed);
+  const cumplidos = list.filter(o => o.completed).sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+
+  if (!pendientesEl || !cumplidosEl) return;
+
+  if (pendientes.length === 0) {
+    pendientesEl.innerHTML = '<div class="day-empty">No hay objetivos pendientes</div>';
+  } else {
+    pendientesEl.innerHTML = pendientes.map(obj => {
+      const inicio = obj.fechaInicio || '';
+      const fin = obj.fechaLimite || '';
+      const now = new Date(hoy + 'T00:00:00');
+      const finDate = fin ? new Date(fin + 'T00:00:00') : null;
+      let tiempo = '';
+      if (finDate) {
+        const diasRestantes = Math.ceil((finDate - now) / (1000 * 60 * 60 * 24));
+        if (diasRestantes < 0) tiempo = `Vencido ${Math.abs(diasRestantes)}d`;
+        else if (diasRestantes === 0) tiempo = 'Vence hoy';
+        else tiempo = `${diasRestantes}d restantes`;
+      }
+      return `
+        <div class="task-item objetivo-item ${obj.completed ? 'completed' : ''}" data-id="${obj.id}">
+          <div class="task-check">${obj.completed ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
+          <div class="task-content">
+            <div class="task-name">${escapeHtml(obj.text)}</div>
+            <div class="task-time">
+              ${inicio ? `<span class="meta-chip inicio">Inicio: ${inicio}</span>` : ''}
+              ${fin ? `<span class="meta-chip fin">Fin: ${fin}</span>` : ''}
+              ${tiempo ? `<span class="meta-chip ${tiempo.startsWith('Vencido') ? 'vencido' : (tiempo==='Vence hoy' ? 'proximo' : '')}">${tiempo}</span>` : ''}
+            </div>
+          </div>
+          <div class="objetivo-actions-inline">
+            <button class="btn-secondary btn-sm task-edit" data-id="${obj.id}" title="Editar">Editar</button>
+            <button class="task-delete" data-id="${obj.id}" title="Eliminar">×</button>
+          </div>
+        </div>`;
+    }).join('');
   }
 
-  const hoy = today();
-  container.innerHTML = list.map(obj => {
-    let fechaInfo = '';
-    if (obj.fechaLimite) {
-      const diasRestantes = Math.ceil((new Date(obj.fechaLimite + 'T00:00:00') - new Date(hoy + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-      if (diasRestantes < 0) {
-        fechaInfo = `<span class="objetivo-fecha vencido">Vencido hace ${Math.abs(diasRestantes)} días</span>`;
-      } else if (diasRestantes === 0) {
-        fechaInfo = `<span class="objetivo-fecha hoy">Vence hoy</span>`;
-      } else if (diasRestantes <= 7) {
-        fechaInfo = `<span class="objetivo-fecha urgente">Quedan ${diasRestantes} días</span>`;
-      } else {
-        fechaInfo = `<span class="objetivo-fecha">${diasRestantes} días restantes</span>`;
-      }
-    }
-    return `
-    <div class="objetivo-item ${obj.completed ? 'completed' : ''}" data-id="${obj.id}">
-      <div class="task-check">${obj.completed ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>
-      <div class="objetivo-content">
-        <div class="objetivo-text">${escapeHtml(obj.text)}</div>
-        ${fechaInfo}
-      </div>
-      <button class="task-delete" data-id="${obj.id}" title="Eliminar">×</button>
-    </div>
-  `;
-  }).join('');
-  container.querySelectorAll('.task-check').forEach(btn => {
-    btn.onclick = () => toggleObjetivo(btn.closest('.objetivo-item').dataset.id);
+  if (cumplidos.length === 0) {
+    cumplidosEl.innerHTML = '<div class="day-empty">No hay objetivos cumplidos todavía</div>';
+  } else {
+    cumplidosEl.innerHTML = cumplidos.map(obj => {
+      const inicio = obj.fechaInicio || '';
+      const fin = obj.fechaLimite || '';
+      const completedAt = obj.completedAt ? new Date(obj.completedAt).toLocaleString() : '—';
+      return `
+        <div class="objetivo-cumplido-item" data-id="${obj.id}">
+          <div class="objetivo-text"><strong>${escapeHtml(obj.text)}</strong></div>
+          <div class="objetivo-detalles">
+            ${inicio ? `<span class="meta-chip inicio">Inicio: ${inicio}</span>` : ''}
+            ${fin ? `<span class="meta-chip fin">Fin: ${fin}</span>` : ''}
+            <span class="meta-chip estado">Completado: ${completedAt}</span>
+          </div>
+          <div class="objetivo-actions">
+            <button class="btn-secondary btn-sm" data-action="reenable" data-id="${obj.id}">Marcar no cumplido</button>
+            <button class="btn-secondary btn-sm btn-danger" data-action="eliminar" data-id="${obj.id}">Eliminar</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // bind events
+  pendientesEl.querySelectorAll('.task-check').forEach(btn => {
+    btn.onclick = e => { e.stopPropagation(); const id = btn.closest('.task-item').dataset.id; toggleObjetivo(id); };
   });
-  container.querySelectorAll('.objetivo-item').forEach(item => {
-    item.onclick = e => { if (!e.target.closest('.task-delete')) toggleObjetivo(item.dataset.id); };
+  pendientesEl.querySelectorAll('.task-item').forEach(item => {
+    item.onclick = e => { if (e.target.closest('.task-delete')) return; const id = item.dataset.id; toggleObjetivo(id); };
   });
-  container.querySelectorAll('.task-delete').forEach(btn => {
-    btn.onclick = e => { e.stopPropagation(); deleteObjetivo(btn.dataset.id); };
+  pendientesEl.querySelectorAll('.task-delete').forEach(btn => { btn.onclick = e => { e.stopPropagation(); deleteObjetivo(btn.dataset.id); }; });
+  pendientesEl.querySelectorAll('.task-edit').forEach(btn => { btn.onclick = e => { e.stopPropagation(); openObjetivoModal(btn.dataset.id); }; });
+
+  cumplidosEl.querySelectorAll('[data-action]').forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if (action === 'reenable') {
+        const o = state.objetivos.find(x => x.id === id);
+        if (o) { o.completed = false; delete o.completedAt; saveToStorage(); renderObjetivos(); renderDashboard(); }
+      } else if (action === 'eliminar') { deleteObjetivo(id); }
+    };
   });
 }
 
-function addObjetivo(text, fechaLimite = null) {
+function addObjetivo(text, fechaInicio = null, fechaLimite = null) {
   state.objetivos.push({
     id: generateId(),
     text: text.trim(),
     completed: false,
+    fechaInicio: fechaInicio || null,
     fechaLimite: fechaLimite || null
   });
   saveToStorage();
@@ -1085,7 +1751,14 @@ function addObjetivo(text, fechaLimite = null) {
 
 function toggleObjetivo(id) {
   const o = state.objetivos.find(x => x.id === id);
-  if (o) { o.completed = !o.completed; saveToStorage(); renderObjetivos(); }
+  if (o) {
+    o.completed = !o.completed;
+    if (o.completed) o.completedAt = new Date().toISOString();
+    else delete o.completedAt;
+    saveToStorage();
+    renderObjetivos();
+    renderDashboard();
+  }
 }
 
 function deleteObjetivo(id) {
@@ -1094,26 +1767,64 @@ function deleteObjetivo(id) {
   renderObjetivos();
 }
 
-function openObjetivoModal() {
-  document.getElementById('objetivo-modal').classList.add('active');
-  document.getElementById('objetivo-text').value = '';
-  document.getElementById('objetivo-fecha').value = '';
-  document.getElementById('objetivo-text').focus();
+function openObjetivoModal(id = null) {
+  const modal = document.getElementById('objetivo-modal');
+  modal.classList.add('active');
+  const textEl = document.getElementById('objetivo-text');
+  const inicioEl = document.getElementById('objetivo-fecha-inicio');
+  const finEl = document.getElementById('objetivo-fecha');
+
+  if (id) {
+    // Edit existing objetivo
+    const o = state.objetivos.find(x => x.id === id);
+    if (o) {
+      modal.dataset.editingId = id;
+      textEl.value = o.text || '';
+      inicioEl.value = o.fechaInicio || '';
+      finEl.value = o.fechaLimite || '';
+    }
+  } else {
+    // New objetivo
+    delete modal.dataset.editingId;
+    textEl.value = '';
+    inicioEl.value = '';
+    finEl.value = '';
+  }
+
+  textEl.focus();
 }
 
 function closeObjetivoModal() {
   document.getElementById('objetivo-modal').classList.remove('active');
+  const modal = document.getElementById('objetivo-modal');
+  delete modal.dataset.editingId;
   document.getElementById('objetivo-form').reset();
 }
 
 function handleObjetivoSubmit(e) {
   e.preventDefault();
   const text = document.getElementById('objetivo-text').value.trim();
+  const fechaInicio = document.getElementById('objetivo-fecha-inicio').value || null;
   const fecha = document.getElementById('objetivo-fecha').value || null;
   if (!text) return;
-  addObjetivo(text, fecha);
+  const modal = document.getElementById('objetivo-modal');
+  const editingId = modal.dataset.editingId || null;
+  if (editingId) {
+    const o = state.objetivos.find(x => x.id === editingId);
+    if (o) {
+      o.text = text;
+      o.fechaInicio = fechaInicio || null;
+      o.fechaLimite = fecha || null;
+      saveToStorage();
+      showNotification('Objetivo actualizado', 'success');
+    }
+  } else {
+    addObjetivo(text, fechaInicio, fecha);
+  }
+
   closeObjetivoModal();
   renderObjetivos();
+  renderDashboard();
 }
 
 // === GYM ===
@@ -1175,7 +1886,10 @@ function renderGym() {
           <button class="task-delete gym-delete-btn" data-day="${dayKey}" title="Eliminar">×</button>
         </div>
         <ul class="gym-exercises-list">${exercisesList}</ul>
-        <button class="btn-start-workout" data-day="${dayKey}">💪 Registrar entrenamiento</button>
+        <div class="gym-day-actions">
+          <button class="btn-start-workout" data-day="${dayKey}">Registrar entrenamiento</button>
+          <button class="btn-edit-workout" data-day="${dayKey}">Editar entrenamiento</button>
+        </div>
       </div>
     `;
   }).filter(Boolean).join('');
@@ -1184,7 +1898,8 @@ function renderGym() {
     card.onclick = e => {
       if (e.target.closest('.gym-delete-btn')) return;
       if (e.target.closest('.btn-start-workout')) return;
-      openGymModal(card.dataset.day);
+      if (e.target.closest('.btn-edit-workout')) return;
+      showRoutineExercises(card.dataset.day);
     };
   });
 
@@ -1193,8 +1908,46 @@ function renderGym() {
   });
 
   container.querySelectorAll('.btn-start-workout').forEach(btn => {
-    btn.onclick = e => { e.stopPropagation(); openWorkoutModal(btn.dataset.day); };
+    btn.onclick = e => { e.stopPropagation(); quickRegisterWorkout(btn.dataset.day); };
   });
+
+  container.querySelectorAll('.btn-edit-workout').forEach(btn => {
+    btn.onclick = e => { e.stopPropagation(); openGymModal(btn.dataset.day); };
+  });
+}
+
+// Registro rápido de entrenamiento sin mostrar modal (botón "Registrar entrenamiento")
+function quickRegisterWorkout(day) {
+  const routine = state.gym[day];
+  if (!routine) return;
+
+  // Normalize exercises to an array of strings (support legacy string format and new array format)
+  let exercisesArr = [];
+  if (Array.isArray(routine.exercises)) {
+    exercisesArr = routine.exercises.map(ex => typeof ex === 'string' ? ex : (ex.name || ''));
+  } else if (typeof routine.exercises === 'string') {
+    exercisesArr = routine.exercises.split('\n').filter(l => l.trim());
+  }
+
+  const workoutData = {
+    id: generateId(),
+    day: day,
+    focus: routine.focus,
+    date: today(),
+    exercises: exercisesArr.map(ex => {
+      const [name, setsPart] = ex.split(/\s+(?=\d+x)/);
+      const [setsCount] = setsPart ? setsPart.split('x') : ['3'];
+      const numSets = parseInt(setsCount) || 3;
+      const sets = Array.from({ length: numSets }, () => ({ reps: 10, weight: 0 }));
+      return { name: (name || '').trim(), sets };
+    }),
+    notes: ''
+  };
+
+  state.gymWorkouts.push(workoutData);
+  saveToStorage();
+  renderGym();
+  showNotification('Entrenamiento registrado', 'success');
 }
 
 function addGymRoutine(day, focus, exercises) {
@@ -1312,6 +2065,9 @@ function selectExercise(id, name) {
   currentSelectedExerciseId = id;
   document.querySelector('.custom-select-trigger').textContent = name;
   closeCustomSelect();
+
+  // Agregar automáticamente el ejercicio a la lista
+  addGymExerciseToList();
 }
 
 function openCustomSelect() {
@@ -1521,7 +2277,7 @@ function setTaskDateDefault() {
   if (el && !el.value) el.value = today();
 }
 
-function openTaskModal(editTask = null) {
+function openTaskModal(editTask = null, presetDate = null) {
   setTaskDateDefault();
   taskModal.classList.add('active');
   if (editTask) {
@@ -1535,7 +2291,11 @@ function openTaskModal(editTask = null) {
     taskForm.dataset.editId = editTask.id;
   } else {
     taskForm.reset();
-    setTaskDateDefault();
+    if (presetDate) {
+      document.getElementById('task-date').value = presetDate;
+    } else {
+      setTaskDateDefault();
+    }
     delete taskForm.dataset.editId;
   }
   document.getElementById('task-name').focus();
@@ -1681,6 +2441,135 @@ function renderGymHistory() {
       </div>
     `;
   }).join('');
+}
+
+function showExerciseInfo(exerciseName) {
+  // Buscar el ejercicio en la base de datos
+  const exercise = EJERCICIOS_DATABASE.find(ex =>
+    ex.name.toLowerCase() === exerciseName.toLowerCase() ||
+    exerciseName.toLowerCase().includes(ex.name.toLowerCase())
+  );
+
+  if (!exercise) {
+    showNotification('No se encontró información para este ejercicio', 'warning');
+    return;
+  }
+
+  // Crear y mostrar el modal con la información del ejercicio
+  const modal = document.getElementById('exercise-info-modal');
+  const modalContent = modal.querySelector('.modal-content');
+
+  modalContent.innerHTML = `
+    <button class="modal-close" onclick="closeExerciseInfoModal()">×</button>
+    <h2><span class="accent">${escapeHtml(exercise.name)}</span></h2>
+    <div class="exercise-info-content">
+      <div class="exercise-image-container">
+        <img src="${exercise.image}" alt="${escapeHtml(exercise.name)}" class="exercise-image" onerror="this.src='https://via.placeholder.com/400x300?text=Imagen+no+disponible'">
+      </div>
+      <div class="exercise-details">
+        <div class="exercise-detail-item">
+          <strong>Grupo muscular:</strong> ${escapeHtml(exercise.group.charAt(0).toUpperCase() + exercise.group.slice(1))}
+        </div>
+        <div class="exercise-detail-item">
+          <strong>Descripción:</strong> ${escapeHtml(exercise.description)}
+        </div>
+        <div class="exercise-detail-item">
+          <strong>Tags:</strong> ${exercise.tags.map(tag => `<span class="exercise-tag">${escapeHtml(tag)}</span>`).join(' ')}
+        </div>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="btn-secondary" onclick="closeExerciseInfoModal()">Cerrar</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+function closeExerciseInfoModal() {
+  document.getElementById('exercise-info-modal').classList.remove('active');
+}
+
+function showRoutineExercises(day) {
+  const routine = state.gym[day];
+  if (!routine) return;
+
+  // Obtener lista de ejercicios
+  let exercises = [];
+  if (Array.isArray(routine.exercises)) {
+    exercises = routine.exercises;
+  } else if (typeof routine.exercises === 'string') {
+    // Formato antiguo
+    const lines = routine.exercises.split('\n').filter(l => l.trim());
+    exercises = lines.map(line => {
+      const match = line.match(/^(.+?)\s+(\d+)x(\d+)$/);
+      if (match) {
+        return {
+          name: match[1].trim(),
+          series: parseInt(match[2]),
+          reps: parseInt(match[3]),
+          weight: 0
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  if (exercises.length === 0) {
+    showNotification('Esta rutina no tiene ejercicios', 'warning');
+    return;
+  }
+
+  // Crear el contenido del modal con todos los ejercicios
+  const modal = document.getElementById('exercise-info-modal');
+  const modalContent = modal.querySelector('.modal-content');
+
+  const exercisesHTML = exercises.map(ex => {
+    // Buscar el ejercicio en la base de datos
+    const exerciseData = EJERCICIOS_DATABASE.find(e =>
+      e.name.toLowerCase() === ex.name.toLowerCase() ||
+      ex.name.toLowerCase().includes(e.name.toLowerCase())
+    );
+
+    const imageURL = exerciseData?.image || 'https://via.placeholder.com/400x300?text=Imagen+no+disponible';
+    const description = exerciseData?.description || 'Sin descripción disponible';
+    const group = exerciseData?.group || 'general';
+
+    return `
+      <div class="routine-exercise-card">
+        <div class="routine-exercise-header">
+          <h3>${escapeHtml(ex.name)}</h3>
+          <span class="routine-exercise-info">${ex.series}x${ex.reps}${ex.weight > 0 ? ` @ ${ex.weight}kg` : ''}</span>
+        </div>
+        <div class="routine-exercise-content">
+          <div class="routine-exercise-image">
+            <img src="${imageURL}" alt="${escapeHtml(ex.name)}" onerror="this.src='https://via.placeholder.com/400x300?text=Imagen+no+disponible'">
+          </div>
+          <div class="routine-exercise-details">
+            <div class="routine-detail-item">
+              <strong>Grupo muscular:</strong> ${escapeHtml(group.charAt(0).toUpperCase() + group.slice(1))}
+            </div>
+            <div class="routine-detail-item">
+              <strong>Descripción:</strong> ${escapeHtml(description)}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  modalContent.innerHTML = `
+    <button class="modal-close" onclick="closeExerciseInfoModal()">×</button>
+    <h2><span class="accent">${DAY_LABELS[day]}</span> - ${GYM_FOCUS[routine.focus] || routine.focus}</h2>
+    <div class="routine-exercises-container">
+      ${exercisesHTML}
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="btn-secondary" onclick="closeExerciseInfoModal()">Cerrar</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
 }
 
 // === EJERCICIOS ===
@@ -1983,11 +2872,682 @@ function renderEjercicios() {
   `).join('');
 }
 
-// Inicializar filtro de ejercicios
-document.addEventListener('DOMContentLoaded', () => {
-  const ejerciciosFilter = document.getElementById('ejercicios-filter');
-  if (ejerciciosFilter) {
-    ejerciciosFilter.addEventListener('change', renderEjercicios);
+// === CRONÓMETRO ===
+let cronometroInterval = null;
+
+function renderCronometro() {
+  updateCronometroDisplay();
+}
+
+function updateCronometroDisplay() {
+  const mins = Math.floor(state.cronometro.timeLeft / 60);
+  const secs = state.cronometro.timeLeft % 60;
+  const timerEl = document.getElementById('cronometro-timer');
+  if (timerEl) {
+    timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  // Update progress ring
+  const progress = 1 - (state.cronometro.timeLeft / state.cronometro.totalTime);
+  const circumference = 2 * Math.PI * 150;
+  const offset = circumference * (1 - progress);
+  const ringEl = document.getElementById('cronometro-progress-ring-fill');
+  if (ringEl) {
+    ringEl.style.strokeDashoffset = offset;
+  }
+}
+
+function startCronometro() {
+  if (state.cronometro.isRunning) {
+    pauseCronometro();
+    return;
+  }
+
+  state.cronometro.isRunning = true;
+  const startBtn = document.getElementById('cronometro-start');
+  if (startBtn) startBtn.textContent = 'Pausar';
+
+  cronometroInterval = setInterval(() => {
+    state.cronometro.timeLeft--;
+
+    if (state.cronometro.timeLeft <= 0) {
+      completeCronometro();
+    }
+
+    updateCronometroDisplay();
+  }, 1000);
+}
+
+function pauseCronometro() {
+  state.cronometro.isRunning = false;
+  clearInterval(cronometroInterval);
+  const startBtn = document.getElementById('cronometro-start');
+  if (startBtn) startBtn.textContent = 'Reanudar';
+}
+
+function resetCronometro() {
+  pauseCronometro();
+  state.cronometro.isRunning = false;
+  clearInterval(cronometroInterval);
+  state.cronometro.timeLeft = state.cronometro.totalTime;
+  const startBtn = document.getElementById('cronometro-start');
+  if (startBtn) startBtn.textContent = 'Iniciar';
+  updateCronometroDisplay();
+}
+
+function completeCronometro() {
+  clearInterval(cronometroInterval);
+  state.cronometro.isRunning = false;
+  showNotification('¡Tiempo completado! ⏰', 'success');
+  playNotificationSound();
+  const startBtn = document.getElementById('cronometro-start');
+  if (startBtn) startBtn.textContent = 'Iniciar';
+  state.cronometro.timeLeft = state.cronometro.totalTime;
+  updateCronometroDisplay();
+}
+
+function setCronometroTime(minutes) {
+  if (state.cronometro.isRunning) {
+    showNotification('Pausa el cronómetro antes de cambiar el tiempo', 'warning');
+    return;
+  }
+  state.cronometro.totalTime = minutes * 60;
+  state.cronometro.timeLeft = minutes * 60;
+  updateCronometroDisplay();
+}
+
+function playNotificationSound() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (e) {
+    console.error('Error playing sound:', e);
+  }
+}
+
+// === MIS DATOS ===
+function renderMisDatos() {
+  // Cargar datos guardados
+  const datos = state.misDatos;
+
+  document.getElementById('misdatos-nombre').value = datos.nombre || '';
+  document.getElementById('misdatos-edad').value = datos.edad || '';
+  document.getElementById('misdatos-genero').value = datos.genero || '';
+  document.getElementById('misdatos-fecha-nacimiento').value = datos.fechaNacimiento || '';
+  document.getElementById('misdatos-altura').value = datos.altura || '';
+  document.getElementById('misdatos-peso').value = datos.peso || '';
+  document.getElementById('misdatos-objetivo').value = datos.objetivo || '';
+  document.getElementById('misdatos-nivel-actividad').value = datos.nivelActividad || '';
+
+  // Información avanzada
+  document.getElementById('misdatos-grasa-corporal').value = datos.grasaCorporal || '';
+  document.getElementById('misdatos-masa-muscular').value = datos.masaMuscular || '';
+  document.getElementById('misdatos-grasa-visceral').value = datos.grasaVisceral || '';
+  document.getElementById('misdatos-agua-corporal').value = datos.aguaCorporal || '';
+  document.getElementById('misdatos-masa-osea').value = datos.masaOsea || '';
+  document.getElementById('misdatos-metabolismo-basal').value = datos.metabolismoBasal || '';
+
+  // Perímetros
+  document.getElementById('misdatos-perimetro-pecho').value = datos.perimetroPecho || '';
+  document.getElementById('misdatos-perimetro-cintura').value = datos.perimetroCintura || '';
+  document.getElementById('misdatos-perimetro-cadera').value = datos.perimetroCadera || '';
+  document.getElementById('misdatos-perimetro-muslo').value = datos.perimetroMuslo || '';
+  document.getElementById('misdatos-perimetro-brazo').value = datos.perimetroBrazo || '';
+  document.getElementById('misdatos-perimetro-antebrazo').value = datos.perimetroAntebrazo || '';
+  document.getElementById('misdatos-perimetro-pantorrilla').value = datos.perimetroPantorrilla || '';
+  document.getElementById('misdatos-perimetro-cuello').value = datos.perimetroCuello || '';
+
+  // Calcular y mostrar estadísticas
+  actualizarEstadisticasMisDatos();
+}
+
+function handleMisDatosSubmit(e) {
+  e.preventDefault();
+
+  // Guardar datos en el state
+  state.misDatos = {
+    nombre: document.getElementById('misdatos-nombre').value.trim(),
+    edad: document.getElementById('misdatos-edad').value,
+    genero: document.getElementById('misdatos-genero').value,
+    fechaNacimiento: document.getElementById('misdatos-fecha-nacimiento').value,
+    altura: document.getElementById('misdatos-altura').value,
+    peso: document.getElementById('misdatos-peso').value,
+    objetivo: document.getElementById('misdatos-objetivo').value,
+    nivelActividad: document.getElementById('misdatos-nivel-actividad').value,
+    // Información avanzada
+    grasaCorporal: document.getElementById('misdatos-grasa-corporal').value,
+    masaMuscular: document.getElementById('misdatos-masa-muscular').value,
+    grasaVisceral: document.getElementById('misdatos-grasa-visceral').value,
+    aguaCorporal: document.getElementById('misdatos-agua-corporal').value,
+    masaOsea: document.getElementById('misdatos-masa-osea').value,
+    metabolismoBasal: document.getElementById('misdatos-metabolismo-basal').value,
+    // Perímetros
+    perimetroPecho: document.getElementById('misdatos-perimetro-pecho').value,
+    perimetroCintura: document.getElementById('misdatos-perimetro-cintura').value,
+    perimetroCadera: document.getElementById('misdatos-perimetro-cadera').value,
+    perimetroMuslo: document.getElementById('misdatos-perimetro-muslo').value,
+    perimetroBrazo: document.getElementById('misdatos-perimetro-brazo').value,
+    perimetroAntebrazo: document.getElementById('misdatos-perimetro-antebrazo').value,
+    perimetroPantorrilla: document.getElementById('misdatos-perimetro-pantorrilla').value,
+    perimetroCuello: document.getElementById('misdatos-perimetro-cuello').value
+  };
+
+  saveToStorage();
+  actualizarEstadisticasMisDatos();
+  showNotification('Datos guardados correctamente ✅', 'success');
+}
+
+function actualizarEstadisticasMisDatos() {
+  const altura = parseFloat(state.misDatos.altura);
+  const peso = parseFloat(state.misDatos.peso);
+
+  if (altura && peso) {
+    // Calcular IMC
+    const imc = calcularIMC(peso, altura);
+    document.getElementById('misdatos-imc').textContent = imc.toFixed(1);
+
+    // Mostrar categoría del IMC
+    let categoria = '';
+    let color = '';
+    if (imc < 18.5) {
+      categoria = 'Bajo peso';
+      color = '#fbbf24';
+    } else if (imc >= 18.5 && imc < 25) {
+      categoria = 'Peso normal';
+      color = '#10b981';
+    } else if (imc >= 25 && imc < 30) {
+      categoria = 'Sobrepeso';
+      color = '#f59e0b';
+    } else {
+      categoria = 'Obesidad';
+      color = '#ef4444';
+    }
+
+    const descElement = document.getElementById('misdatos-imc-desc');
+    descElement.textContent = categoria;
+    descElement.style.color = color;
+
+    // Calcular peso ideal (fórmula de Devine)
+    const pesoIdeal = calcularPesoIdeal(altura, state.misDatos.genero);
+    if (pesoIdeal) {
+      document.getElementById('misdatos-peso-ideal').textContent = pesoIdeal.toFixed(1) + ' kg';
+    } else {
+      document.getElementById('misdatos-peso-ideal').textContent = '--';
+    }
+  } else {
+    document.getElementById('misdatos-imc').textContent = '--';
+    document.getElementById('misdatos-imc-desc').textContent = 'Ingresa altura y peso';
+    document.getElementById('misdatos-imc-desc').style.color = '';
+    document.getElementById('misdatos-peso-ideal').textContent = '--';
+  }
+}
+
+function calcularIMC(peso, altura) {
+  // Convertir altura de cm a metros
+  const alturaMetros = altura / 100;
+  return peso / (alturaMetros * alturaMetros);
+}
+
+function calcularPesoIdeal(altura, genero) {
+  // Fórmula de Devine
+  // Hombres: 50 kg + 2.3 kg por cada pulgada sobre 5 pies
+  // Mujeres: 45.5 kg + 2.3 kg por cada pulgada sobre 5 pies
+
+  if (!genero) return null;
+
+  const alturaCm = parseFloat(altura);
+  if (!alturaCm) return null;
+
+  // Convertir altura a pulgadas
+  const pulgadas = alturaCm / 2.54;
+  const pulgadasSobre5Pies = pulgadas - 60; // 5 pies = 60 pulgadas
+
+  if (genero === 'masculino') {
+    return 50 + (2.3 * pulgadasSobre5Pies);
+  } else if (genero === 'femenino') {
+    return 45.5 + (2.3 * pulgadasSobre5Pies);
+  } else {
+    // Para "otro", usar promedio
+    return 47.75 + (2.3 * pulgadasSobre5Pies);
+  }
+}
+
+// === PROGRESO ===
+const progresoModal = document.getElementById('progreso-modal');
+
+function renderProgreso() {
+  calcularEstadisticasProgreso();
+  
+  const chartWrapper = document.getElementById('progreso-chart-wrapper');
+  if (!chartWrapper) return;
+  
+  if (state.progresos.length === 0) {
+    chartWrapper.innerHTML = `
+      <div class="progreso-empty-chart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        <p>No tienes ningún progreso añadido</p>
+        <button class="btn-primary" id="empty-progreso-btn" onclick="openProgresoModal()">+ Crear progreso</button>
+      </div>
+    `;
+  } else {
+    chartWrapper.innerHTML = '<canvas id="chart-progreso-peso"></canvas>';
+    renderGraficaProgreso();
+  }
+
+  // Renderizar lista lateral de progresos
+  renderProgresoList();
+}
+
+function renderProgresoList() {
+  const progresoList = document.getElementById('progreso-list');
+  if (!progresoList) return;
+
+  if (state.progresos.length === 0) {
+    progresoList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem 1rem;">Sin progresos</p>';
+    return;
+  }
+
+  progresoList.innerHTML = state.progresos.map(progreso => {
+    const fechaObj = new Date(progreso.fecha);
+    const fechaFormato = formatDate(fechaObj);
+    const tieneFoto = progreso.foto !== null && progreso.foto !== undefined && progreso.foto !== '';
+    
+    // evitar que el click en el ojo active el click del item
+    const eyeBtn = tieneFoto ? `<button class="progreso-list-item-eye-btn" onclick="event.stopPropagation(); viewProgresoPhoto('${progreso.id}')" title="Ver foto" aria-label="Ver foto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>` : '';
+
+    return `
+      <div class="progreso-list-item" onclick="openProgresoModalForId && openProgresoModalForId('${progreso.id}')">
+        <div class="progreso-list-item-header">
+          <div class="progreso-list-item-info">
+            <div class="progreso-list-item-fecha">${fechaFormato}</div>
+            <div class="progreso-list-item-peso">${progreso.peso} kg</div>
+          </div>
+          ${eyeBtn}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function viewProgresoPhoto(id) {
+  const progreso = state.progresos.find(p => p.id === id);
+  if (!progreso || !progreso.foto) return;
+  // Crear modal accesible y con cierre fiable
+  const modal = document.createElement('div');
+  modal.className = 'progreso-photo-modal';
+  modal.style.cssText = `position: fixed; inset: 0; background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999; padding:1rem;`;
+
+  const inner = document.createElement('div');
+  inner.style.cssText = 'background: var(--bg-card); border-radius: var(--radius-md); padding: 1rem; max-width: 90vw; max-height: 90vh; overflow: auto; position: relative;';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'progreso-photo-close';
+  closeBtn.setAttribute('aria-label', 'Cerrar imagen');
+  closeBtn.innerHTML = '✕';
+  closeBtn.style.cssText = 'position:absolute; top:0.6rem; right:0.6rem; background: transparent; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-primary);';
+  closeBtn.addEventListener('click', () => modal.remove());
+
+  const img = document.createElement('img');
+  img.src = progreso.foto;
+  img.style.cssText = 'max-width:100%; height:auto; border-radius: var(--radius-md); display:block; margin: 1.5rem 0 0 0;';
+
+  const fechaP = document.createElement('p');
+  fechaP.style.cssText = 'color: var(--text-secondary); margin-top:1rem; font-size:0.9rem;';
+  fechaP.textContent = `Fecha: ${formatDate(new Date(progreso.fecha))}`;
+
+  inner.appendChild(closeBtn);
+  inner.appendChild(img);
+  inner.appendChild(fechaP);
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+
+  // cerrar al hacer click fuera
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+function openProgresoModal() {
+  document.getElementById('progreso-fecha').value = today();
+  document.getElementById('progreso-peso-input').value = '';
+  document.getElementById('progreso-foto').value = '';
+  document.getElementById('progreso-notas-input').value = '';
+  document.getElementById('progreso-foto-preview').innerHTML = '';
+  document.getElementById('progreso-foto-preview').classList.remove('active');
+  progresoModal.classList.add('active');
+}
+
+function closeProgresoModal() {
+  progresoModal.classList.remove('active');
+}
+
+function handleProgresoSubmit(e) {
+  e.preventDefault();
+
+  const fecha = document.getElementById('progreso-fecha').value;
+  const peso = parseFloat(document.getElementById('progreso-peso-input').value);
+  const notas = document.getElementById('progreso-notas-input').value.trim();
+  const fotoInput = document.getElementById('progreso-foto');
+
+  const nuevoProgreso = {
+    id: generateId(),
+    fecha: fecha,
+    peso: peso,
+    notas: notas,
+    foto: null
+  };
+
+  // Manejar la foto si se seleccionó
+  if (fotoInput.files && fotoInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      nuevoProgreso.foto = e.target.result;
+      state.progresos.push(nuevoProgreso);
+      state.progresos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      saveToStorage();
+      closeProgresoModal();
+      renderProgreso();
+      showNotification('Progreso registrado correctamente ✅', 'success');
+    };
+    reader.readAsDataURL(fotoInput.files[0]);
+  } else {
+    state.progresos.push(nuevoProgreso);
+    state.progresos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    saveToStorage();
+    closeProgresoModal();
+    renderProgreso();
+    showNotification('Progreso registrado correctamente ✅', 'success');
+  }
+}
+
+function deleteProgreso(id) {
+  if (!confirm('¿Eliminar este registro de progreso?')) return;
+  state.progresos = state.progresos.filter(p => p.id !== id);
+  saveToStorage();
+  renderProgreso();
+  showNotification('Registro eliminado', 'success');
+}
+
+function calcularEstadisticasProgreso() {
+  const progresos = state.progresos;
+
+  if (progresos.length === 0) {
+    document.getElementById('progreso-peso-actual').textContent = '--';
+    document.getElementById('progreso-cambio-semana').textContent = 'Sin datos';
+    document.getElementById('progreso-cambio-total').textContent = '--';
+    document.getElementById('progreso-desde-inicio').textContent = 'Sin datos';
+    document.getElementById('progreso-cambio-mes').textContent = '--';
+    document.getElementById('progreso-mes-desc').textContent = 'Sin datos';
+    document.getElementById('progreso-total-registros').textContent = '0';
+    return;
+  }
+
+  // Peso actual (registro más reciente)
+  const pesoActual = progresos[0].peso;
+  document.getElementById('progreso-peso-actual').textContent = pesoActual.toFixed(1) + ' kg';
+  document.getElementById('progreso-total-registros').textContent = progresos.length;
+
+  // Cambio desde el inicio
+  if (progresos.length > 1) {
+    const pesoInicial = progresos[progresos.length - 1].peso;
+    const cambioTotal = pesoActual - pesoInicial;
+    const cambioTotalEl = document.getElementById('progreso-cambio-total');
+    cambioTotalEl.textContent = (cambioTotal >= 0 ? '+' : '') + cambioTotal.toFixed(1) + ' kg';
+    document.getElementById('progreso-desde-inicio').textContent = 'Desde ' + formatDate(new Date(progresos[progresos.length - 1].fecha));
+  } else {
+    document.getElementById('progreso-cambio-total').textContent = '--';
+    document.getElementById('progreso-desde-inicio').textContent = 'Primer registro';
+  }
+
+  // Cambio última semana
+  const hace7Dias = new Date();
+  hace7Dias.setDate(hace7Dias.getDate() - 7);
+  const progresoSemana = progresos.find(p => new Date(p.fecha) <= hace7Dias);
+
+  if (progresoSemana) {
+    const cambioSemana = pesoActual - progresoSemana.peso;
+    const cambioSemanaEl = document.getElementById('progreso-cambio-semana');
+    cambioSemanaEl.textContent = (cambioSemana >= 0 ? '+' : '') + cambioSemana.toFixed(1) + ' kg última semana';
+    cambioSemanaEl.className = 'progreso-stat-change';
+    if (cambioSemana > 0) cambioSemanaEl.classList.add('positive');
+    else if (cambioSemana < 0) cambioSemanaEl.classList.add('negative');
+  } else {
+    document.getElementById('progreso-cambio-semana').textContent = 'Sin datos previos';
+    document.getElementById('progreso-cambio-semana').className = 'progreso-stat-change';
+  }
+
+  // Cambio último mes
+  const hace30Dias = new Date();
+  hace30Dias.setDate(hace30Dias.getDate() - 30);
+  const progresoMes = progresos.find(p => new Date(p.fecha) <= hace30Dias);
+
+  if (progresoMes) {
+    const cambioMes = pesoActual - progresoMes.peso;
+    document.getElementById('progreso-cambio-mes').textContent = (cambioMes >= 0 ? '+' : '') + cambioMes.toFixed(1) + ' kg';
+    document.getElementById('progreso-mes-desc').textContent = 'Último mes';
+  } else {
+    document.getElementById('progreso-cambio-mes').textContent = '--';
+    document.getElementById('progreso-mes-desc').textContent = 'Sin datos suficientes';
+  }
+}
+
+function renderHistorialProgreso() {
+  const container = document.getElementById('progreso-historial-list');
+  const progresos = state.progresos;
+
+  if (progresos.length === 0) {
+    container.innerHTML = `
+      <div class="progreso-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        <p>No hay registros de progreso aún.</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Comienza a registrar tu peso para ver tu evolución.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  progresos.forEach((progreso, index) => {
+    const fecha = new Date(progreso.fecha);
+    const fechaStr = fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    let cambioHtml = '';
+    if (index < progresos.length - 1) {
+      const cambio = progreso.peso - progresos[index + 1].peso;
+      const cambioClass = cambio > 0 ? 'positive' : cambio < 0 ? 'negative' : 'neutral';
+      const cambioText = cambio > 0 ? `+${cambio.toFixed(1)} kg` : cambio < 0 ? `${cambio.toFixed(1)} kg` : 'Sin cambio';
+      cambioHtml = `<span class="progreso-item-cambio ${cambioClass}">${cambioText}</span>`;
+    }
+
+    const fotoHtml = progreso.foto
+      ? `<img src="${progreso.foto}" alt="Progreso">`
+      : `<div class="progreso-item-foto-placeholder">📸</div>`;
+
+    html += `
+      <div class="progreso-item">
+        <div class="progreso-item-foto">
+          ${fotoHtml}
+        </div>
+        <div class="progreso-item-info">
+          <div class="progreso-item-header">
+            <span class="progreso-item-peso">${progreso.peso.toFixed(1)} kg</span>
+            <span class="progreso-item-fecha">${fechaStr}</span>
+            ${cambioHtml}
+          </div>
+          ${progreso.notas ? `<div class="progreso-item-notas">${escapeHtml(progreso.notas)}</div>` : ''}
+        </div>
+        <button class="progreso-item-delete" onclick="deleteProgreso('${progreso.id}')" title="Eliminar">🗑️</button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderGraficaProgreso() {
+  const canvas = document.getElementById('chart-progreso-peso');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  // Destruir gráfica previa si existe
+  if (window.chartProgresoPeso) {
+    window.chartProgresoPeso.destroy();
+  }
+
+  const progresos = state.progresos;
+  if (progresos.length === 0) return;
+
+  // Ordenar por fecha ascendente para la gráfica
+  const datosOrdenados = [...progresos].reverse();
+
+  const labels = datosOrdenados.map(p => {
+    const fecha = new Date(p.fecha);
+    return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  });
+
+  const datos = datosOrdenados.map(p => p.peso);
+
+  try {
+    window.chartProgresoPeso = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Peso (kg)',
+          data: datos,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#3b82f6',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                return `Peso: ${context.parsed.y.toFixed(1)} kg`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: {
+              callback: function(value) {
+                return value.toFixed(1) + ' kg';
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error al renderizar gráfica de progreso:', error);
+  }
+}
+
+// Event listeners para progreso
+document.getElementById('add-progreso-btn')?.addEventListener('click', openProgresoModal);
+document.getElementById('cancel-progreso-btn')?.addEventListener('click', closeProgresoModal);
+document.getElementById('progreso-form')?.addEventListener('submit', handleProgresoSubmit);
+document.getElementById('progreso-modal')?.addEventListener('click', e => {
+  if (e.target.id === 'progreso-modal') closeProgresoModal();
+});
+
+// Preview de foto
+document.getElementById('progreso-foto')?.addEventListener('change', function(e) {
+  const preview = document.getElementById('progreso-foto-preview');
+  const file = e.target.files[0];
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+      preview.classList.add('active');
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = '';
+    preview.classList.remove('active');
+  }
+});
+
+// Event listener para el formulario de Mis Datos
+document.getElementById('misdatos-form')?.addEventListener('submit', handleMisDatosSubmit);
+
+// Event listeners para actualizar estadísticas en tiempo real
+document.getElementById('misdatos-altura')?.addEventListener('input', actualizarEstadisticasMisDatos);
+document.getElementById('misdatos-peso')?.addEventListener('input', actualizarEstadisticasMisDatos);
+document.getElementById('misdatos-genero')?.addEventListener('change', actualizarEstadisticasMisDatos);
+
+// Cronómetro Event Listeners
+document.getElementById('cronometro-start')?.addEventListener('click', startCronometro);
+document.getElementById('cronometro-reset')?.addEventListener('click', resetCronometro);
+
+document.querySelectorAll('.cronometro-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.cronometro-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (mode === 'custom') {
+      const customInput = document.getElementById('cronometro-custom-input');
+      if (customInput) customInput.style.display = 'flex';
+    } else {
+      const customInput = document.getElementById('cronometro-custom-input');
+      if (customInput) customInput.style.display = 'none';
+      setCronometroTime(parseInt(mode));
+    }
+  });
+});
+
+document.getElementById('cronometro-set-custom')?.addEventListener('click', () => {
+  const input = document.getElementById('cronometro-custom-minutes');
+  if (input) {
+    const minutes = parseInt(input.value);
+    if (minutes > 0 && minutes <= 180) {
+      setCronometroTime(minutes);
+      document.getElementById('cronometro-custom-input').style.display = 'none';
+    } else {
+      showNotification('Por favor ingresa un valor entre 1 y 180 minutos', 'warning');
+    }
   }
 });
 
