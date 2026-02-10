@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- Pantalla de Login -->
+
   <div id="login-screen" class="screen active">
     <header class="header">
       <div class="logo">
@@ -21,7 +21,6 @@
         <h1 id="auth-title"><span class="accent">Iniciar</span> sesión</h1>
         <p class="subtitle" id="auth-subtitle">Planifica tu semana y cumple tus objetivos</p>
 
-        <!-- Formulario de Login -->
         <form id="login-form" style="display: block;">
           <input type="text" id="login-username" placeholder="Usuario" required autocomplete="username">
           <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
@@ -29,7 +28,6 @@
           <p class="auth-switch">¿No tienes cuenta? <a href="#" id="show-register">Regístrate aquí</a></p>
         </form>
 
-        <!-- Formulario de Registro -->
         <form id="register-form" style="display: none;">
           <input type="text" id="register-username" placeholder="Usuario" required autocomplete="username" minlength="3">
           <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
@@ -42,7 +40,6 @@
     </main>
   </div>
 
-  <!-- Dashboard principal -->
   <div id="app-screen" class="screen">
     <aside class="sidebar">
       <div class="sidebar-logo">
@@ -54,16 +51,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Dashboard</span>
         </button>
-        <button class="nav-item" data-view="semana">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>Semana</span>
-        </button>
         <button class="nav-item" data-view="calendario">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
           <span>Calendario</span>
         </button>
         <button class="nav-item" data-view="objetivos">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           <span>Objetivos</span>
         </button>
         <button class="nav-item" data-view="gym">
@@ -74,15 +67,27 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           <span>Ejercicios</span>
         </button>
+        <button class="nav-item" data-view="cronometro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Cronómetro</span>
+        </button>
         <button class="nav-item" data-view="analisis">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M9 17V9"/><path d="M15 17v-5"/><path d="M12 17v-1"/></svg>
           <span>Análisis</span>
         </button>
-        <button class="nav-item" data-view="config">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>Configuración</span>
+        <button class="nav-item" data-view="progreso">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Progreso</span>
+        </button>
+        <button class="nav-item" data-view="misdatos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Mis Datos</span>
         </button>
         <div class="sidebar-footer">
+          <button class="nav-item" data-view="config">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Configuración</span>
+          </button>
           <button class="nav-item nav-item-logout" id="logout-btn" title="Cerrar sesión">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             <span>Salir</span>
@@ -95,7 +100,6 @@
       <div id="notifications-container" class="notifications-container"></div>
 
       <main class="dashboard-content">
-        <!-- Vista Dashboard -->
         <section id="view-dashboard" class="view active">
           <div class="section-header">
             <h3><span class="accent">Dashboard</span></h3>
@@ -111,14 +115,7 @@
               <span class="stat-value" id="stat-hoy">0</span>
               <span class="stat-label">Tareas hoy</span>
             </div>
-            <div class="stat-card">
-              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              <span class="stat-value" id="stat-completadas">0</span>
-              <span class="stat-label">Completadas hoy</span>
-            </div>
+            
             <div class="stat-card">
               <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
@@ -126,23 +123,8 @@
               <span class="stat-value" id="stat-racha">0</span>
               <span class="stat-label">Racha de días</span>
             </div>
-            <div class="stat-card">
-              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-              <span class="stat-value" id="stat-progreso-semana">0%</span>
-              <span class="stat-label">Progreso semanal</span>
-            </div>
-            <div class="stat-card">
-              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-              <span class="stat-value" id="stat-tiempo-estimado">0h</span>
-              <span class="stat-label">Tiempo estimado pendiente</span>
-            </div>
+            
+            
             <div class="stat-card">
               <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -152,36 +134,62 @@
               <span class="stat-value" id="stat-atrasadas">0</span>
               <span class="stat-label">Tareas atrasadas</span>
             </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span class="stat-value" id="stat-total-completadas">0</span>
+              <span class="stat-label">Total completadas</span>
+            </div>
+            
+            
+            
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+              </svg>
+              <span class="stat-value" id="stat-completadas-semana">0</span>
+              <span class="stat-label">Completadas esta semana</span>
+            </div>
+            <div class="stat-card">
+              <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+              <span class="stat-value" id="stat-objetivos-completados">0</span>
+              <span class="stat-label">Objetivos cumplidos</span>
+            </div>
           </div>
+
+          <!-- Gráficas del Dashboard (removidas) -->
+
           <div class="dashboard-sections">
             <div class="dashboard-card">
               <h3><span class="accent">Próximas</span> tareas</h3>
               <div id="dashboard-proximas" class="task-list-mini"></div>
             </div>
-            <div class="dashboard-card">
-              <h3><span class="accent">Objetivos</span> próximos</h3>
-              <div id="dashboard-objetivos" class="objetivos-mini"></div>
-            </div>
+              <div class="dashboard-card">
+                <h3><span class="accent">Objetivos</span> próximos</h3>
+                <div class="dashboard-objetivos-controls" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                  <select id="dashboard-objetivos-filter">
+                    <option value="proximos">Próximos</option>
+                    <option value="en-curso">En curso</option>
+                    <option value="completados">Completados</option>
+                    <option value="todos">Mis objetivos</option>
+                  </select>
+                  <button class="btn-secondary btn-sm" id="ver-mis-objetivos-btn">Ver todos</button>
+                </div>
+                <div id="dashboard-objetivos" class="objetivos-mini"></div>
+              </div>
             <div class="dashboard-card">
               <h3><span class="accent">Resumen</span> semanal</h3>
               <div id="dashboard-resumen" class="week-mini"></div>
             </div>
           </div>
         </section>
-
-        <!-- Vista Semana -->
-        <section id="view-semana" class="view">
-          <div class="section-header">
-            <h3><span class="accent">Mi</span> Semana</h3>
-          </div>
-          <div class="week-container"></div>
-        </section>
-
-        <!-- Vista Calendario -->
         <section id="view-calendario" class="view">
-          <div class="section-header">
-            <h3><span class="accent">Calendario</span></h3>
-          </div>
           <div class="calendar-header">
             <button class="btn-icon" id="cal-prev">‹</button>
             <h3 id="cal-month-year">Febrero 2025</h3>
@@ -198,17 +206,26 @@
           <div class="calendar-tasks" id="calendar-day-tasks"></div>
         </section>
 
-        <!-- Vista Objetivos -->
         <section id="view-objetivos" class="view">
           <div class="section-header">
             <h3><span class="accent">Mis</span> objetivos</h3>
             <button class="btn-primary btn-add-sm" id="add-objetivo-btn">+ Nuevo objetivo</button>
           </div>
-          <div id="objetivos-list" class="objetivos-list"></div>
+
+          <div class="objetivos-columns">
+            <div class="objetivos-section">
+              <h4>Objetivos pendientes</h4>
+              <div id="objetivos-pendientes" class="objetivos-list"></div>
+            </div>
+
+            <div class="objetivos-section">
+              <h4>Objetivos cumplidos</h4>
+              <div id="objetivos-cumplidos" class="objetivos-list"></div>
+            </div>
+          </div>
         </section>
 
 
-        <!-- Vista GYM -->
         <section id="view-gym" class="view">
           <div class="section-header">
             <h3><span class="accent">Rutinas</span> de gym</h3>
@@ -234,7 +251,6 @@
           <div class="gym-container" id="gym-container"></div>
         </section>
 
-        <!-- Vista Ejercicios -->
         <section id="view-ejercicios" class="view">
           <div class="section-header">
             <h3><span class="accent">Biblioteca</span> de ejercicios</h3>
@@ -253,44 +269,136 @@
           <div id="ejercicios-grid" class="ejercicios-grid"></div>
         </section>
 
-        <!-- Vista Análisis -->
         <section id="view-analisis" class="view">
           <div class="section-header">
             <h3><span class="accent">Análisis</span> de productividad</h3>
           </div>
+
           <div class="analisis-container">
-            <div class="analisis-grid">
-              <div class="analisis-card">
-                <h3>Productividad Semanal</h3>
-                <canvas id="chart-weekly"></canvas>
-              </div>
-              <div class="analisis-card">
-                <h3>Tareas por Categoría</h3>
-                <canvas id="chart-category"></canvas>
-              </div>
-              <div class="analisis-card">
-                <h3>Tareas por Prioridad</h3>
-                <canvas id="chart-priority"></canvas>
-              </div>
-              <div class="analisis-card">
-                <h3>Progreso General</h3>
-                <div class="progress-stats">
-                  <div class="progress-item">
-                    <span class="progress-label">Tasa Completadas</span>
-                    <div class="progress-bar"><div class="progress-fill" id="progress-rate"></div></div>
-                    <span class="progress-value" id="progress-rate-text">0%</span>
-                  </div>
-                  <div class="progress-item">
-                    <span class="progress-label">Racha Actual (días)</span>
-                    <span class="progress-value" id="current-streak">0</span>
+            <!-- Análisis de mejoras -->
+            <div class="mejoras-section">
+              <h3><span class="accent">Tus</span> mejoras</h3>
+              <div class="mejoras-grid">
+                <div class="mejora-card">
+                  <div class="mejora-icon mejora-up">↑</div>
+                  <div class="mejora-content">
+                    <span class="mejora-value" id="mejora-tareas-completadas">--</span>
+                    <span class="mejora-label">Más tareas completadas</span>
+                    <span class="mejora-comparacion" id="mejora-tareas-comparacion">vs. semana anterior</span>
                   </div>
                 </div>
+                <div class="mejora-card">
+                  <div class="mejora-icon mejora-up">↑</div>
+                  <div class="mejora-content">
+                    <span class="mejora-value" id="mejora-racha">--</span>
+                    <span class="mejora-label">Días de racha</span>
+                    <span class="mejora-comparacion" id="mejora-racha-comparacion">Mejor racha: --</span>
+                  </div>
+                </div>
+                <div class="mejora-card">
+                  <div class="mejora-icon mejora-neutral">→</div>
+                  <div class="mejora-content">
+                    <span class="mejora-value" id="mejora-puntualidad">--</span>
+                    <span class="mejora-label">Puntualidad</span>
+                    <span class="mejora-comparacion" id="mejora-puntualidad-comparacion">Tareas a tiempo</span>
+                  </div>
+                </div>
+                <div class="mejora-card">
+                  <div class="mejora-icon mejora-neutral">⏱️</div>
+                  <div class="mejora-content">
+                    <span class="mejora-value" id="mejora-tiempo-promedio">--</span>
+                    <span class="mejora-label">Tiempo medio por tarea</span>
+                    <span class="mejora-comparacion" id="mejora-tiempo-comparacion">vs. periodo anterior</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Análisis de hábitos -->
+            <div class="habitos-section">
+              <h3><span class="accent">Análisis</span> de hábitos</h3>
+              <div class="habitos-grid">
+                <div class="habito-card">
+                  <h4>Días más productivos</h4>
+                  <div id="habito-dias-productivos" class="habito-list">
+                    <div class="habito-item">
+                      <span class="habito-dia">Lunes</span>
+                      <div class="habito-bar"><div class="habito-bar-fill" style="width: 0%"></div></div>
+                      <span class="habito-valor">0</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="habito-card">
+                  <h4>Horas más productivas</h4>
+                  <div id="habito-horas-productivas" class="habito-list">
+                    <div class="habito-item">
+                      <span class="habito-dia">Mañana (6-12h)</span>
+                      <div class="habito-bar"><div class="habito-bar-fill" style="width: 0%"></div></div>
+                      <span class="habito-valor">0</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="habito-card">
+                  <h4>Categorías favoritas</h4>
+                  <div id="habito-categorias" class="habito-list">
+                    <div class="habito-item">
+                      <span class="habito-dia">Sin categoría</span>
+                      <div class="habito-bar"><div class="habito-bar-fill" style="width: 0%"></div></div>
+                      <span class="habito-valor">0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progreso mensual -->
+            <div class="progreso-mensual-section">
+              <h3><span class="accent">Evolución</span> mensual</h3>
+              <div class="analisis-card">
+                <canvas id="chart-monthly-progress"></canvas>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Vista Configuración -->
+        <!-- CRONOMETRO -->
+        <section id="view-cronometro" class="view">
+          <div class="section-header">
+            <h3><span class="accent"></span> Cronómetro</h3>
+          </div>
+
+          <div class="cronometro-container">
+            <div class="cronometro-main">
+              <div class="cronometro-mode-selector">
+                <button class="cronometro-mode-btn active" data-mode="25">25 min</button>
+                <button class="cronometro-mode-btn" data-mode="15">15 min</button>
+                <button class="cronometro-mode-btn" data-mode="5">5 min</button>
+                <button class="cronometro-mode-btn" data-mode="custom">Personalizado</button>
+              </div>
+
+              <div class="cronometro-custom-input" id="cronometro-custom-input" style="display: none;">
+                <input type="number" id="cronometro-custom-minutes" placeholder="Minutos" min="1" max="180" value="25">
+                <button id="cronometro-set-custom" class="btn-secondary">Establecer</button>
+              </div>
+
+              <div class="cronometro-timer-circle">
+                <svg class="cronometro-progress-ring" width="320" height="320">
+                  <circle class="cronometro-progress-ring-bg" stroke="#2a2a2a" stroke-width="10" fill="transparent" r="150" cx="160" cy="160"/>
+                  <circle id="cronometro-progress-ring-fill" class="cronometro-progress-ring-fill" stroke="#3b82f6" stroke-width="10" fill="transparent" r="150" cx="160" cy="160"/>
+                </svg>
+                <div class="cronometro-timer-display">
+                  <span id="cronometro-timer">25:00</span>
+                </div>
+              </div>
+
+              <div class="cronometro-controls">
+                <button id="cronometro-start" class="btn-primary cronometro-btn-large">Iniciar</button>
+                <button id="cronometro-reset" class="btn-secondary cronometro-btn-large">Resetear</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="view-config" class="view">
           <div class="section-header">
             <h3><span class="accent">Configuración</span></h3>
@@ -327,17 +435,298 @@
             </div>
           </div>
         </section>
+
+        <section id="view-misdatos" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Mis</span> Datos</h3>
+          </div>
+          <div class="misdatos-container">
+            <div class="misdatos-card">
+              <h3><span class="accent">Información</span> Personal</h3>
+              <form id="misdatos-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-nombre">Nombre completo</label>
+                    <input type="text" id="misdatos-nombre" placeholder="Tu nombre">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-edad">Edad</label>
+                    <input type="number" id="misdatos-edad" placeholder="Años" min="1" max="120">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-genero">Género</label>
+                    <select id="misdatos-genero">
+                      <option value="">Seleccionar</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-fecha-nacimiento">Fecha de nacimiento</label>
+                    <input type="date" id="misdatos-fecha-nacimiento">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-altura">Altura (cm)</label>
+                    <input type="number" id="misdatos-altura" placeholder="170" min="50" max="250">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-peso">Peso (kg)</label>
+                    <input type="number" id="misdatos-peso" placeholder="70" min="20" max="300" step="0.1">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-objetivo">Objetivo principal</label>
+                    <select id="misdatos-objetivo">
+                      <option value="">Seleccionar</option>
+                      <option value="perder-peso">Perder peso</option>
+                      <option value="ganar-musculo">Ganar músculo</option>
+                      <option value="mantenimiento">Mantenimiento</option>
+                      <option value="mejorar-salud">Mejorar salud general</option>
+                      <option value="rendimiento">Mejorar rendimiento</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-nivel-actividad">Nivel de actividad</label>
+                    <select id="misdatos-nivel-actividad">
+                      <option value="">Seleccionar</option>
+                      <option value="sedentario">Sedentario</option>
+                      <option value="ligero">Ligeramente activo</option>
+                      <option value="moderado">Moderadamente activo</option>
+                      <option value="activo">Muy activo</option>
+                      <option value="extremo">Extremadamente activo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <h3 style="margin-top: 2rem;"><span class="accent">Información</span> Avanzada</h3>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-grasa-corporal">Grasa corporal (%)</label>
+                    <input type="number" id="misdatos-grasa-corporal" placeholder="15.5" min="0" max="100" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-masa-muscular">Masa muscular (kg)</label>
+                    <input type="number" id="misdatos-masa-muscular" placeholder="60" min="0" max="200" step="0.1">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-grasa-visceral">Grasa visceral (nivel)</label>
+                    <input type="number" id="misdatos-grasa-visceral" placeholder="5" min="0" max="60">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-agua-corporal">Agua corporal (%)</label>
+                    <input type="number" id="misdatos-agua-corporal" placeholder="60" min="0" max="100" step="0.1">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-masa-osea">Masa ósea (kg)</label>
+                    <input type="number" id="misdatos-masa-osea" placeholder="3.2" min="0" max="10" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-metabolismo-basal">Metabolismo basal (kcal)</label>
+                    <input type="number" id="misdatos-metabolismo-basal" placeholder="1800" min="800" max="4000">
+                  </div>
+                </div>
+
+                <h4 style="margin-top: 1.5rem; margin-bottom: 1rem;">Perímetros Corporales (cm)</h4>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-pecho">Pecho</label>
+                    <input type="number" id="misdatos-perimetro-pecho" placeholder="100" min="50" max="200" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-cintura">Cintura</label>
+                    <input type="number" id="misdatos-perimetro-cintura" placeholder="80" min="40" max="200" step="0.1">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-cadera">Cadera</label>
+                    <input type="number" id="misdatos-perimetro-cadera" placeholder="95" min="50" max="200" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-muslo">Muslo</label>
+                    <input type="number" id="misdatos-perimetro-muslo" placeholder="55" min="30" max="100" step="0.1">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-brazo">Brazo (relajado)</label>
+                    <input type="number" id="misdatos-perimetro-brazo" placeholder="35" min="20" max="80" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-antebrazo">Antebrazo</label>
+                    <input type="number" id="misdatos-perimetro-antebrazo" placeholder="28" min="15" max="60" step="0.1">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-pantorrilla">Pantorrilla</label>
+                    <input type="number" id="misdatos-perimetro-pantorrilla" placeholder="38" min="20" max="80" step="0.1">
+                  </div>
+                  <div class="form-group">
+                    <label for="misdatos-perimetro-cuello">Cuello</label>
+                    <input type="number" id="misdatos-perimetro-cuello" placeholder="38" min="20" max="80" step="0.1">
+                  </div>
+                </div>
+
+                <div class="modal-buttons">
+                  <button type="submit" class="btn-primary">💾 Guardar Datos</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="misdatos-stats">
+              <div class="stat-card">
+                <h4>IMC (Índice de Masa Corporal)</h4>
+                <div class="stat-value-large" id="misdatos-imc">--</div>
+                <div class="stat-description" id="misdatos-imc-desc">Ingresa altura y peso</div>
+              </div>
+              <div class="stat-card">
+                <h4>Peso ideal estimado</h4>
+                <div class="stat-value-large" id="misdatos-peso-ideal">--</div>
+                <div class="stat-description">Basado en tu altura</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-progreso" class="view">
+          <div class="section-header">
+            <h3><span class="accent">Mi</span> Progreso</h3>
+            <button class="btn-primary btn-add-sm" id="add-progreso-btn">+ Registrar Progreso</button>
+          </div>
+
+          <!-- Estadísticas de progreso -->
+          <div class="progreso-stats-grid">
+            <div class="progreso-stat-card">
+              <svg class="progreso-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <div class="progreso-stat-content">
+                <span class="progreso-stat-label">Peso Actual</span>
+                <span class="progreso-stat-value" id="progreso-peso-actual">--</span>
+                <span class="progreso-stat-change" id="progreso-cambio-semana">--</span>
+              </div>
+            </div>
+            <div class="progreso-stat-card">
+              <svg class="progreso-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                <polyline points="16 7 22 7 22 13"/>
+              </svg>
+              <div class="progreso-stat-content">
+                <span class="progreso-stat-label">Cambio Total</span>
+                <span class="progreso-stat-value" id="progreso-cambio-total">--</span>
+                <span class="progreso-stat-change" id="progreso-desde-inicio">Desde inicio</span>
+              </div>
+            </div>
+            <div class="progreso-stat-card">
+              <svg class="progreso-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <div class="progreso-stat-content">
+                <span class="progreso-stat-label">Cambio Mensual</span>
+                <span class="progreso-stat-value" id="progreso-cambio-mes">--</span>
+                <span class="progreso-stat-change" id="progreso-mes-desc">Último mes</span>
+              </div>
+            </div>
+            <div class="progreso-stat-card">
+              <svg class="progreso-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+              <div class="progreso-stat-content">
+                <span class="progreso-stat-label">Registros</span>
+                <span class="progreso-stat-value" id="progreso-total-registros">0</span>
+                <span class="progreso-stat-change">Total de mediciones</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfica de evolución -->
+          <div class="progreso-evolution-wrapper">
+            <div class="progreso-chart-container">
+              <div class="progreso-chart-card">
+                <h3><span class="accent">Evolución</span> del peso</h3>
+                <div id="progreso-chart-wrapper"></div>
+              </div>
+            </div>
+
+            <!-- Listado de progresos -->
+            <div class="progreso-list-container">
+              <h3><span class="accent">Historial</span> de progresos</h3>
+              <div id="progreso-list" class="progreso-list"></div>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   </div>
 
-  <!-- Modal objetivo -->
+  <!-- Modal para añadir progreso -->
+  <div id="progreso-modal" class="modal">
+    <div class="modal-content">
+      <h2><span class="accent">Registrar</span> Progreso</h2>
+      <form id="progreso-form">
+        <div class="form-group">
+          <label for="progreso-fecha">Fecha</label>
+          <input type="date" id="progreso-fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="progreso-peso-input">Peso (kg)</label>
+          <input type="number" id="progreso-peso-input" placeholder="70.5" min="20" max="300" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label for="progreso-foto">Foto de progreso (opcional)</label>
+          <input type="file" id="progreso-foto" accept="image/*">
+          <div id="progreso-foto-preview" class="progreso-foto-preview"></div>
+        </div>
+        <div class="form-group">
+          <label for="progreso-notas-input">Notas</label>
+          <textarea id="progreso-notas-input" placeholder="¿Cómo te sientes? ¿Algún cambio notable?" rows="3"></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-secondary" id="cancel-progreso-btn">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="objetivo-modal" class="modal">
     <div class="modal-content">
       <h2><span class="accent">Nuevo</span> objetivo</h2>
       <form id="objetivo-form">
         <input type="text" id="objetivo-text" placeholder="¿Cuál es tu objetivo?" required>
-        <input type="date" id="objetivo-fecha" placeholder="Fecha límite (opcional)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="objetivo-fecha-inicio">Fecha inicio (opcional)</label>
+            <input type="date" id="objetivo-fecha-inicio">
+          </div>
+          <div class="form-group">
+            <label for="objetivo-fecha">Fecha fin (opcional)</label>
+            <input type="date" id="objetivo-fecha" placeholder="Fecha límite (opcional)">
+          </div>
+        </div>
         <div class="modal-buttons">
           <button type="button" class="btn-secondary" id="cancel-objetivo-btn">Cancelar</button>
           <button type="submit" class="btn-primary">Guardar</button>
@@ -345,8 +734,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Modal rutina GYM -->
   <div id="gym-modal" class="modal">
     <div class="modal-content modal-extra-wide">
       <h2><span class="accent">Nueva</span> rutina</h2>
@@ -387,7 +774,6 @@
                 </div>
               </div>
             </div>
-            <button type="button" class="btn-secondary btn-add-exercise" id="btn-add-exercise">+ Agregar ejercicio</button>
           </div>
 
           <div id="gym-selected-exercises" class="gym-selected-exercises"></div>
@@ -401,7 +787,6 @@
     </div>
   </div>
 
-  <!-- Modal registro de entrenamiento -->
   <div id="gym-workout-modal" class="modal">
     <div class="modal-content modal-extra-wide">
       <h2><span class="accent">Registrar</span> entrenamiento</h2>
@@ -420,7 +805,6 @@
     </div>
   </div>
 
-  <!-- Modal historial GYM -->
   <div id="gym-history-modal" class="modal">
     <div class="modal-content modal-wide">
       <h2><span class="accent">Historial</span> de entrenamientos</h2>
@@ -431,7 +815,23 @@
     </div>
   </div>
 
-  <!-- Modal tarea completa -->
+  <div id="exercise-info-modal" class="modal">
+    <div class="modal-content modal-exercises">
+      <!-- Contenido dinámico insertado por JavaScript -->
+    </div>
+  </div>
+
+  <div id="logout-modal" class="modal">
+    <div class="modal-content">
+      <h2><span class="accent-red">Cerrar</span> sesión</h2>
+      <p class="logout-warning">¿Estás seguro que quieres cerrar sesión?</p>
+      <div class="modal-buttons">
+        <button type="button" class="btn-secondary" id="cancel-logout-btn">Cancelar</button>
+        <button type="button" class="btn-danger" id="confirm-logout-btn">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+
   <div id="task-modal" class="modal">
     <div class="modal-content modal-wide">
       <h2><span class="accent">Nueva</span> tarea</h2>
@@ -468,7 +868,6 @@
     </div>
   </div>
 
-  <!-- Modal Timer/Enfoque -->
   <div id="timer-modal" class="modal">
     <div class="modal-content">
       <h2>Timer de Tarea</h2>
@@ -484,7 +883,6 @@
     </div>
   </div>
 
-  <!-- Modal Notas Rápidas -->
   <div id="notes-modal" class="modal">
     <div class="modal-content modal-wide">
       <h2>Notas Rápidas</h2>
